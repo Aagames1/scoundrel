@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Scoundrel</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121826; --panel2:#0f1522;
+    --text:#eef2ff; --muted:#a7b0c0; --gold:#d4af37;
+    --line:rgba(255,255,255,.08);
+    --danger:#ff5c5c; --ok:#50fa7b; --blue:#6ea8ff;
+    --shadow:0 16px 40px rgba(0,0,0,.55);
+    --r:18px; --r2:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg)}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);display:flex;align-items:center;justify-content:center}
+
+  .app{
+    width:min(980px,98vw);
+    height:min(620px,98vh);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+    background:
+      radial-gradient(900px 600px at 18% -10%, rgba(212,175,55,.10), transparent 58%),
+      radial-gradient(900px 600px at 110% 0%, rgba(110,168,255,.08), transparent 58%),
+      var(--bg);
+  }
+  .top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.02);
+    flex:0 0 auto;
+  }
+  .brand{letter-spacing:.18em;text-transform:uppercase;font-weight:950;color:var(--gold);font-size:.98rem}
+  .pill{
+    display:inline-flex;gap:8px;align-items:center;
+    padding:7px 10px;border-radius:999px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);color:var(--muted);
+    font-weight:900;font-size:.84rem;white-space:nowrap;
+  }
+  .pill b{color:var(--text)}
+  .screen{flex:1 1 auto;min-height:0;padding:12px;display:none}
+  .screen.show{display:block}
+
+  .panel{
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 120%),var(--panel);
+    box-shadow:0 10px 24px rgba(0,0,0,.25);
+    padding:10px;
+    min-height:0;
+  }
+  .panel.sub{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent 120%),var(--panel2)}
+  .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .hrow .h{letter-spacing:.12em;text-transform:uppercase;font-weight:950;font-size:.76rem;color:var(--gold)}
+  .muted{color:var(--muted)}
+  .sm{font-size:.90rem;line-height:1.45}
+
+  button{
+    border:none;border-radius:14px;padding:9px 12px;
+    font-weight:950;font-size:.95rem;cursor:pointer;user-select:none;
+    transition:transform .12s ease,filter .12s ease,opacity .12s ease;
+  }
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.7)}
+  .pri{background:var(--gold);color:#141824}
+  .sec{background:rgba(110,168,255,.16);border:1px solid rgba(110,168,255,.35);color:var(--text)}
+  .dng{background:rgba(255,92,92,.16);border:1px solid rgba(255,92,92,.45);color:var(--text)}
+  .pri:hover:not(:disabled),.sec:hover:not(:disabled),.dng:hover:not(:disabled){filter:brightness(1.06)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap}
+
+  select{
+    width:100%;padding:10px 12px;border-radius:14px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.02);
+    color:var(--text);
+    font-weight:800;outline:none;
+  }
+  select option{background:var(--panel2);color:var(--text)}
+  .lab{letter-spacing:.10em;text-transform:uppercase;font-weight:950;font-size:.72rem;color:var(--muted);margin:10px 0 6px}
+  .tog{
+    display:flex;gap:10px;align-items:flex-start;
+    padding:9px;border:1px solid var(--line);border-radius:14px;
+    background:rgba(255,255,255,.02);margin-top:10px;
+  }
+  .tog input{width:18px;height:18px;accent-color:var(--gold);margin-top:2px}
+
+  /* radio group */
+  .radioWrap{
+    margin-top:10px;
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:rgba(255,255,255,.02);
+  }
+  .radioTitle{font-weight:950;margin-bottom:8px}
+  .radioRow{display:flex;gap:14px;flex-wrap:wrap}
+  .rOpt{display:flex;gap:10px;align-items:center;cursor:pointer;user-select:none}
+  .rOpt input{width:18px;height:18px;accent-color:var(--gold)}
+  .rOpt .txt{font-weight:900}
+  .rOpt .sub{color:var(--muted);font-size:.88rem}
+
+  /* HOME / SETTINGS */
+  .homeGrid{height:100%;display:grid;grid-template-columns:1.2fr .8fr;gap:12px;min-height:0}
+  .rulesPanel{display:flex;flex-direction:column;gap:10px;height:100%}
+  .rulesCompact{flex:1 1 auto;min-height:0;display:grid;gap:8px}
+  .rulesCompact .box{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+  .setGrid{height:100%;display:grid;grid-template-columns:1fr;gap:12px;min-height:0}
+
+  /* GAME */
+  .gameGrid{height:100%;display:grid;grid-template-columns:330px 1fr;gap:12px;min-height:0}
+  .leftCol{height:100%;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;min-height:0}
+
+  .ibox{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.02);border-radius:var(--r2);padding:10px}
+  .ibox.gold{border-color:rgba(212,175,55,.22);background:rgba(212,175,55,.06)}
+  .ibox.blue{border-color:rgba(110,168,255,.20);background:rgba(110,168,255,.06)}
+  .ibox .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-weight:950}
+  .ibox .top .k{letter-spacing:.10em;text-transform:uppercase;font-size:.70rem;color:rgba(233,236,242,.88)}
+  .ibox .top .v{font-size:1.05rem;color:var(--blue)}
+
+  .hp{padding:10px;border-radius:var(--r2);border:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .hpt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .hpt .k{letter-spacing:.10em;text-transform:uppercase;color:var(--muted);font-weight:950;font-size:.70rem}
+  .bar{height:11px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+  .fill{height:100%;width:50%;background:linear-gradient(90deg,var(--ok),var(--gold),var(--danger));border-radius:999px;transition:width .18s ease}
+
+  /* durability */
+  .durRow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+  .durBig{font-size:1.9rem;font-weight:950;letter-spacing:.02em;color:var(--gold);line-height:1}
+  .durHint{color:var(--muted);font-size:.82rem;line-height:1.25;margin-top:6px}
+
+  /* mini-cards */
+  .miniRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .mini{
+    width:38px;height:54px;
+    border-radius:12px;background:#f6f7fb;
+    border:2px solid rgba(0,0,0,.25);
+    box-shadow:0 8px 18px rgba(0,0,0,.22);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    user-select:none;line-height:1;
+  }
+  .mini .mr{font-weight:950;font-size:1.02rem}
+  .mini .ms{font-size:1.08rem;margin-top:2px}
+  .mini.red{color:#c92a2a}
+  .mini.blk{color:#1d2330}
+
+  /* weapon slot */
+  .weaponSlot{
+    border-radius:var(--r);
+    border:1px dashed rgba(255,255,255,.14);
+    background:rgba(255,255,255,.02);
+    display:flex;align-items:center;justify-content:center;
+    min-height:0;overflow:hidden;padding:10px;
+  }
+  .plus{color:rgba(255,255,255,.35);font-weight:950;font-size:2.0rem}
+
+  .board{height:100%;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;min-height:0}
+  .msg{
+    padding:9px;border-radius:14px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);color:var(--muted);
+    min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .msg.ok{border-color:rgba(80,250,123,.35);background:rgba(80,250,123,.06);color:#dfffe9}
+  .msg.bad{border-color:rgba(255,92,92,.45);background:rgba(255,92,92,.06);color:#ffe3e3}
+
+  /* cards grid */
+  .grid4{
+    min-height:0;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    grid-template-rows:repeat(2, minmax(0,1fr));
+    gap:10px;
+    align-items:center;
+    justify-items:center;
+  }
+  .cardw{
+    width:100%;height:100%;
+    display:flex;justify-content:center;align-items:center;
+    padding:6px;border-radius:var(--r);border:1px solid var(--line);
+    background:rgba(255,255,255,.02);
+    cursor:pointer;
+    transition:transform .14s ease, border-color .14s ease, opacity .14s ease;
+    position:relative;overflow:hidden;
+  }
+  .cardw:hover{transform:translateY(-2px);border-color:rgba(212,175,55,.28)}
+  .cardw.used{opacity:.33;cursor:default;transform:none}
+
+  .card{
+    width:clamp(92px, 18vh, 128px);
+    aspect-ratio:2.5/3.5;
+    border-radius:16px;background:#f6f7fb;
+    border:2px solid rgba(0,0,0,.25);
+    box-shadow:0 10px 24px rgba(0,0,0,.25);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    user-select:none;transform:translateZ(0);
+  }
+  .weaponSlot .card{width:clamp(96px, 22vh, 148px)}
+  .rk{font-size:clamp(1.6rem, 3.2vh, 2.2rem);font-weight:950;line-height:1}
+  .st{font-size:clamp(1.35rem, 2.7vh, 1.95rem);line-height:1}
+  .red{color:#c92a2a} .blk{color:#1d2330}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .actions button{flex:1 1 160px}
+
+  /* drawer / modal */
+  .drawer{
+    position:fixed;left:0;right:0;bottom:-240px;z-index:999;
+    background:rgba(12,14,20,.92);border-top:1px solid rgba(255,255,255,.10);
+    backdrop-filter:blur(8px);transition:bottom .18s ease;
+    box-shadow:0 -18px 50px rgba(0,0,0,.55);padding:12px;
+  }
+  .drawer.show{bottom:0}
+  .din{max-width:980px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .dttl{font-weight:950;letter-spacing:.10em;text-transform:uppercase;color:var(--gold);font-size:.84rem}
+  .dinfo{color:var(--muted);line-height:1.3}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:1200;padding:18px}
+  .modal.show{display:flex}
+  .mcard{
+    width:min(520px,96vw);border-radius:18px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 120%),var(--panel);
+    box-shadow:var(--shadow);padding:18px;
+  }
+  .mttl{text-align:center;font-size:1.50rem;font-weight:950;letter-spacing:.04em;margin-bottom:8px}
+  .mttl.v{color:var(--gold)} .mttl.d{color:var(--danger)}
+  .msub{color:var(--muted);text-align:center;line-height:1.45;margin-bottom:12px}
+  .mstats{border:1px solid var(--line);background:rgba(255,255,255,.02);border-radius:14px;padding:12px;margin-bottom:12px}
+  .sr{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);color:var(--muted);font-weight:900}
+  .sr:last-child{border-bottom:none} .sr b{color:var(--text)}
+
+  /* animations */
+  @keyframes dealIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes usedOut{to{opacity:0;transform:translateY(10px) scale(.92)}}
+  @keyframes weaponPop{from{transform:translateY(6px) scale(.96);opacity:.0}to{transform:translateY(0) scale(1);opacity:1}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .deal .cardw{animation:dealIn .22s ease both}
+  .deal .cardw:nth-child(1){animation-delay:.02s}
+  .deal .cardw:nth-child(2){animation-delay:.05s}
+  .deal .cardw:nth-child(3){animation-delay:.08s}
+  .deal .cardw:nth-child(4){animation-delay:.11s}
+  .cardw.flyOut{animation:usedOut .18s ease forwards}
+  .weaponSlot.pop .card{animation:weaponPop .18s ease both}
+  .msg.bad.shake{animation:shake .18s ease}
+
+  @media (max-width:900px){
+    .homeGrid{grid-template-columns:1fr}
+    .gameGrid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">Scoundrel</div>
+    <div class="pill" id="topPill">Mode: <b>Classic</b></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home" class="screen show">
+    <div class="homeGrid">
+      <div class="panel sub rulesPanel">
+        <div class="hrow"><div class="h">How to play</div><div class="pill">A=14</div></div>
+        <div class="rulesCompact sm">
+          <div class="box"><b>Rooms:</b> 4 cards • resolve 3 • leftover carries.</div>
+          <div class="box"><b>Types:</b> ♠/♣ monsters • ♦ weapon • ♥ potion (only first heals each room).</div>
+          <div class="box"><b>Combat:</b> bare = monster • weapon = max(0, monster − weapon).</div>
+          <div class="box"><b>Durability:</b> after weapon-kill, durability becomes monster − 1 (default) or monster.</div>
+          <div class="box"><b>Winning:</b> clear <b>all 13 rooms</b>.</div>
+          <div class="box muted"><b>Deck:</b> remove ♥/♦ J Q K A.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hrow"><div class="h">Start</div><div class="pill">Classic</div></div>
+        <div class="lab">Starting health</div><select id="home_hp"></select>
+
+        <div class="btns" style="margin-top:12px">
+          <button class="sec" onclick="goSettings()">Settings</button>
+          <button class="pri" onclick="startGame()">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="screen">
+    <div class="setGrid">
+      <div class="panel sub">
+        <div class="hrow"><div class="h">Settings</div><div class="pill">classic run</div></div>
+
+        <div class="lab">Starting health</div><select id="set_hp"></select>
+
+        <div class="tog">
+          <input type="checkbox" id="set_firstWeapon" />
+          <div><div style="font-weight:950">Guarantee weapon in first room</div><div class="sm muted">At least one ♦ in the first 4.</div></div>
+        </div>
+
+        <div class="radioWrap">
+          <div class="radioTitle">Durability after a weapon-kill</div>
+          <div class="radioRow">
+            <label class="rOpt">
+              <input type="radio" name="durMode" id="dur_m1" value="m1" checked />
+              <div>
+                <div class="txt">monster − 1</div>
+                <div class="sub">default</div>
+              </div>
+            </label>
+            <label class="rOpt">
+              <input type="radio" name="durMode" id="dur_eq" value="eq" />
+              <div>
+                <div class="txt">monster</div>
+                <div class="sub">equals the monster value</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:12px">
+          <button class="sec" onclick="goHome()">Back</button>
+          <button class="pri" onclick="startGame()">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="screen">
+    <div class="gameGrid">
+      <div class="leftCol">
+        <div class="hp">
+          <div class="hpt"><div class="k">Health</div><div style="font-weight:950"><span id="hpNow">20</span>/<span id="hpMax">20</span></div></div>
+          <div class="bar"><div class="fill" id="hpFill"></div></div>
+          <div class="sm muted" id="hpHint" style="margin-top:7px">Stay above zero.</div>
+        </div>
+
+        <div class="ibox gold">
+          <div class="durRow">
+            <div class="k" style="letter-spacing:.10em;text-transform:uppercase;font-weight:950;font-size:.70rem;color:rgba(233,236,242,.88)">Durability</div>
+            <div class="durBig" id="durVal">14</div>
+          </div>
+          <div class="durHint" id="durSub">First weapon-kill can be up to 14.</div>
+          <div class="miniRow" id="durMini"></div>
+        </div>
+
+        <div class="weaponSlot" id="weaponSlot"><div class="plus">+</div></div>
+
+        <div class="ibox blue">
+          <div class="top"><div class="k">Cards left</div><div class="v" id="deckLeft">0</div></div>
+        </div>
+      </div>
+
+      <div class="panel board">
+        <div class="btns" style="justify-content:space-between">
+          <div class="pill" id="cardsLeftPill">Cards left: <b>0</b></div>
+          <div class="pill" id="modePill">Mode: <b>Classic</b></div>
+        </div>
+
+        <div class="msg" id="msg">Choose a card.</div>
+        <div class="grid4" id="grid"></div>
+
+        <div class="actions">
+          <button class="dng" id="fleeBtn" onclick="fleeRoom()">Flee</button>
+          <button class="pri" id="nextBtn" onclick="nextRoom()" disabled>Next Room</button>
+          <button class="sec" onclick="openMenu()">Menu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer" id="drawer">
+  <div class="din">
+    <div>
+      <div class="dttl" id="dTitle">Fight</div>
+      <div class="dinfo" id="dInfo"></div>
+    </div>
+    <div class="btns" id="dBtns"></div>
+    <button class="sec" onclick="closeDrawer()">Close</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="mcard">
+    <div class="mttl" id="mTitle"></div>
+    <div class="msub" id="mSub"></div>
+    <div class="mstats" id="mStats"></div>
+    <div class="btns" id="mBtns"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id), SC=["home","settings","game"], show=s=>SC.forEach(x=>$(x).classList.toggle("show",x===s));
+const SU=["♠","♣","♥","♦"], RED=new Set(["♥","♦"]), RK=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const isRed=s=>RED.has(s), val=r=>r==="A"?14:r==="J"?11:r==="Q"?12:r==="K"?13:parseInt(r,10), nm=c=>c.rank+c.suit;
+
+const CFG={hp:20,firstWeapon:false,durMinus1:true}; // durMinus1 default true
+const G={room:1,max:13,endless:false,cleared:0,deck:[],cards:[],carry:null,hp:20,hpMax:20,faced:0,healed:false,fledLast:false,weapon:null,pendingI:null,pendingV:null,stats:{fought:0,damage:0}};
+
+const fill=(id,items)=>{const s=$(id);s.innerHTML="";items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;s.appendChild(o);});};
+const bind=(id,get,set)=>{const el=$(id),a=()=>set(get());el.addEventListener("change",a);el.addEventListener("input",a);};
+
+const buildDeck=()=>{const d=[];for(const s of SU)for(const r of RK){if(isRed(s)&&(r==="J"||r==="Q"||r==="K"||r==="A"))continue;d.push({rank:r,suit:s});}return d;};
+const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}};
+const fresh=()=>{G.deck=buildDeck();sh(G.deck);};
+const ensure=n=>{while(G.deck.length<n){const x=buildDeck();sh(x);G.deck.push(...x);}};
+
+function guaranteeFirstWeapon(){
+  const up=[]; if(G.carry) up.push(G.carry);
+  const need=4-up.length; ensure(need);
+  for(let i=0;i<need;i++) up.push(G.deck[i]);
+  if(up.some(c=>c.suit==="♦")) return;
+  const idx=G.deck.findIndex(c=>c.suit==="♦");
+  if(idx>-1) [G.deck[0],G.deck[idx]]=[G.deck[idx],G.deck[0]];
+}
+
+function goSettings(){
+  $("set_hp").value=String(CFG.hp);
+  $("set_firstWeapon").checked=CFG.firstWeapon;
+  $("dur_m1").checked=CFG.durMinus1;
+  $("dur_eq").checked=!CFG.durMinus1;
+  show("settings");
+}
+function goHome(){
+  $("home_hp").value=String(CFG.hp);
+  show("home");
+}
+
+const canProceed=()=>G.faced>=3, canFlee=()=>G.faced===0&&!G.fledLast;
+const shouldWinAfterClear=()=>G.endless?false:(G.cleared>=G.max);
+
+function startGame(){
+  G.room=1; G.max=13; G.endless=false;
+  G.cleared=0; G.cards=[]; G.carry=null; G.faced=0; G.healed=false; G.fledLast=false;
+  G.weapon=null; G.pendingI=null; G.pendingV=null; G.stats={fought:0,damage:0};
+  G.hp=CFG.hp; G.hpMax=CFG.hp;
+  fresh(); if(CFG.firstWeapon) guaranteeFirstWeapon();
+  $("topPill").innerHTML="Mode: <b>Classic</b>";
+  show("game"); draw(true);
+}
+
+function draw(isNew){
+  closeDrawer();
+  G.faced=0; G.healed=false; G.pendingI=null; G.pendingV=null;
+  const cs=[];
+  if(G.carry){ cs.push({...G.carry,used:false}); G.carry=null; }
+  ensure(4-cs.length);
+  while(cs.length<4) cs.push({...G.deck.shift(),used:false});
+  G.cards=cs;
+  setMsg("Choose a card.");
+  ui(isNew);
+}
+
+function nextRoom(){
+  if(!canProceed()) return flashBad("Resolve 3 cards first.");
+  const rem=G.cards.filter(c=>!c.used);
+  G.carry=rem[0]?{rank:rem[0].rank,suit:rem[0].suit}:null;
+
+  G.cleared++;
+  if(shouldWinAfterClear()) return endRun(true);
+
+  G.room++;
+  draw(true);
+}
+
+function fleeRoom(){
+  if(!canFlee()) return flashBad("You can’t flee right now.");
+  const rem=G.cards.filter(c=>!c.used);
+  const keep=rem.pop()||null;
+  G.carry=keep?{rank:keep.rank,suit:keep.suit}:null;
+  G.fledLast=true; G.room++;
+  setMsg("You flee. New room drawn.");
+  draw(true);
+}
+
+/* Durability: start at 14 (instead of ANY). */
+const wDmg=()=>G.weapon?val(G.weapon.card.rank):0;
+const equip=c=>G.weapon={card:{...c},monsters:[],dur:14};
+const durInfo=()=>!G.weapon?{v:"14",s:"Equip a weapon to use it."}:{v:String(G.weapon.dur),s:""};
+const canWeaponKill=(mv)=>!!G.weapon && mv<=G.weapon.dur;
+
+function dmg(d){
+  G.stats.damage+=d; G.hp-=d;
+  if(G.hp<=0){ G.hp=0; ui(false); endRun(false); return false; }
+  return true;
+}
+
+function markUsed(i){
+  const el=$("grid").children[i]; if(el) el.classList.add("flyOut");
+  setTimeout(()=>{ if(G.cards[i]&&!G.cards[i].used){ G.cards[i].used=true; G.faced++; G.fledLast=false; ui(false);} },160);
+}
+
+function selectCard(i){
+  const c=G.cards[i]; if(!c||c.used) return;
+  if(G.faced>=3) return flashBad("Next Room is ready.");
+
+  if(c.suit==="♦"){ equip(c); setMsg(`Equipped ${nm(c)}.`,"ok"); markUsed(i); $("weaponSlot").classList.add("pop"); setTimeout(()=>$("weaponSlot").classList.remove("pop"),220); return; }
+  if(c.suit==="♥"){
+    if(G.healed){ setMsg("Potion has no effect (already healed this room)."); markUsed(i); return; }
+    const h=val(c.rank), b=G.hp; G.hp=Math.min(G.hpMax,G.hp+h); G.healed=true; setMsg(`Healed ${G.hp-b}.`,"ok"); markUsed(i); return;
+  }
+  openDrawer(i,val(c.rank));
+}
+
+function openDrawer(i,mv){
+  G.pendingI=i; G.pendingV=mv;
+
+  $("dTitle").textContent=`Fight: ${nm(G.cards[i])}`;
+  $("dInfo").innerHTML=`Monster: <b>${mv}</b>` + (G.weapon ? ` • Weapon: <b>${wDmg()}</b> • Durability: <b>${G.weapon.dur}</b>` : ` • <b>No weapon</b>`);
+
+  const btns=$("dBtns"); btns.innerHTML="";
+
+  const w=document.createElement("button");
+  w.className="pri";
+  w.textContent="Use weapon";
+  w.disabled = !canWeaponKill(mv);           // ✅ grayed out if not possible
+  w.onclick=fightWeapon;
+  btns.appendChild(w);
+
+  const b=document.createElement("button");
+  b.className="dng";
+  b.textContent="Barehanded";
+  b.onclick=fightBare;
+  btns.appendChild(b);
+
+  $("drawer").classList.add("show");
+}
+function closeDrawer(){ $("drawer").classList.remove("show"); G.pendingI=null; G.pendingV=null; }
+
+function fightWeapon(){
+  const idx=G.pendingI; if(idx==null) return;
+  const mv=G.pendingV;
+  if(!canWeaponKill(mv)) return flashBad("Weapon can’t kill that right now.");
+
+  const taken=Math.max(0,mv-wDmg()); if(!dmg(taken)) return;
+  G.weapon.monsters.push({...G.cards[idx]});
+  G.weapon.dur=Math.max(0, Math.min(14, CFG.durMinus1?(mv-1):mv));
+  G.stats.fought++; setMsg(taken?`You took ${taken}.`:"Clean kill.","ok");
+  closeDrawer(); markUsed(idx);
+}
+function fightBare(){
+  const idx=G.pendingI; if(idx==null) return;
+  const mv=G.pendingV; if(!dmg(mv)) return;
+  G.stats.fought++; setMsg(`You took ${mv}.`);
+  closeDrawer(); markUsed(idx);
+}
+
+function openMenu(){
+  closeDrawer();
+  $("mTitle").className="mttl v"; $("mTitle").textContent="Menu";
+  $("mSub").textContent="Quick options.";
+  $("mStats").innerHTML=
+    `<div class="sr"><span>Cleared</span><b>${G.cleared} / ${G.max}</b></div>`+
+    `<div class="sr"><span>Cards left</span><b>${G.deck.length}</b></div>`+
+    `<div class="sr"><span>Mode</span><b>Classic</b></div>`;
+  const b=$("mBtns"); b.innerHTML="";
+  const c=document.createElement("button"); c.className="sec"; c.textContent="Close"; c.onclick=()=>$("modal").classList.remove("show"); b.appendChild(c);
+  const r=document.createElement("button"); r.className="dng"; r.textContent="Restart"; r.onclick=()=>location.reload(); b.appendChild(r);
+  $("modal").classList.add("show");
+}
+function endRun(victory){
+  closeDrawer();
+  $("mTitle").className="mttl "+(victory?"v":"d");
+  $("mTitle").textContent=victory?"You made it out.":"You fall.";
+  $("mSub").textContent=victory?"Run complete. Want to keep going?":"Try again — small decisions add up.";
+  $("mStats").innerHTML=
+    `<div class="sr"><span>Rooms cleared</span><b>${G.cleared}</b></div>`+
+    `<div class="sr"><span>Monsters fought</span><b>${G.stats.fought}</b></div>`+
+    `<div class="sr"><span>Damage taken</span><b>${G.stats.damage}</b></div>`;
+  const b=$("mBtns"); b.innerHTML="";
+  const re=document.createElement("button"); re.className="dng"; re.textContent="Restart"; re.onclick=()=>location.reload(); b.appendChild(re);
+
+  if(victory){
+    const cont=document.createElement("button");
+    cont.className="pri";
+    cont.textContent="Endless";
+    cont.onclick=()=>{ $("modal").classList.remove("show"); G.endless=true; fresh(); G.carry=null; setMsg("Endless: fresh deck shuffled in.","ok"); draw(true); };
+    b.appendChild(cont);
+  }
+
+  $("modal").classList.add("show");
+}
+
+function setMsg(t,type=""){ const el=$("msg"); el.className="msg"+(type?(" "+type):""); el.innerHTML=t; }
+function flashBad(t){ setMsg(t,"bad"); const el=$("msg"); el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+
+function ui(dealAnim){
+  $("modePill").innerHTML=`Mode: <b>${G.endless?"Endless":"Classic"}</b>`;
+
+  $("hpNow").textContent=G.hp; $("hpMax").textContent=G.hpMax;
+  const pct=G.hpMax?Math.max(0,Math.min(1,G.hp/G.hpMax)):0;
+  $("hpFill").style.width=(pct*100).toFixed(1)+"%";
+  $("hpHint").textContent=pct>=.66?"You’re steady.":pct>=.33?"Careful now.":"One bad hit.";
+
+  const di=durInfo();
+  $("durVal").textContent=di.v;
+  $("durSub").textContent=di.s || " ";
+
+  const row=$("durMini"); row.innerHTML="";
+  if(G.weapon){
+    G.weapon.monsters.slice(-10).forEach(m=>{
+      const mini=document.createElement("div");
+      mini.className="mini "+(isRed(m.suit)?"red":"blk");
+      mini.innerHTML=`<div class="mr">${m.rank}</div><div class="ms">${m.suit}</div>`;
+      row.appendChild(mini);
+    });
+  }
+
+  const slot=$("weaponSlot"); slot.innerHTML="";
+  if(!G.weapon) slot.innerHTML='<div class="plus">+</div>';
+  else{
+    const el=document.createElement("div");
+    el.className="card "+(isRed(G.weapon.card.suit)?"red":"blk");
+    el.innerHTML=`<div class="rk">${G.weapon.card.rank}</div><div class="st">${G.weapon.card.suit}</div>`;
+    slot.appendChild(el);
+  }
+
+  $("deckLeft").textContent=String(G.deck.length);
+  $("cardsLeftPill").innerHTML=`Cards left: <b>${G.deck.length}</b>`;
+
+  $("nextBtn").disabled=!canProceed();
+  $("fleeBtn").disabled=!canFlee();
+
+  const grid=$("grid"); grid.innerHTML="";
+  G.cards.forEach((c,i)=>{
+    const w=document.createElement("div"); w.className="cardw"+(c.used?" used":"");
+    const cd=document.createElement("div"); cd.className="card "+(isRed(c.suit)?"red":"blk");
+    cd.innerHTML=`<div class="rk">${c.rank}</div><div class="st">${c.suit}</div>`;
+    w.appendChild(cd);
+    if(!c.used) w.onclick=()=>selectCard(i);
+    grid.appendChild(w);
+  });
+
+  grid.classList.toggle("deal", !!dealAnim);
+  if(dealAnim) setTimeout(()=>grid.classList.remove("deal"), 350);
+}
+
+/* init */
+(function init(){
+  fill("home_hp",[["15","15 (Hard)"],["20","20 (Normal)"],["25","25 (Easy)"],["30","30 (Very Easy)"]]);
+  fill("set_hp",[["15","15 (Hard)"],["20","20 (Normal)"],["25","25 (Easy)"],["30","30 (Very Easy)"]]);
+
+  bind("home_hp", ()=>parseInt($("home_hp").value,10), v=>CFG.hp=v);
+  bind("set_hp", ()=>parseInt($("set_hp").value,10), v=>CFG.hp=v);
+  bind("set_firstWeapon", ()=>$("set_firstWeapon").checked, v=>CFG.firstWeapon=v);
+
+  // radio -> CFG.durMinus1
+  const syncDur=()=>{ CFG.durMinus1 = $("dur_m1").checked; };
+  $("dur_m1").addEventListener("change", syncDur);
+  $("dur_eq").addEventListener("change", syncDur);
+
+  $("home_hp").value=String(CFG.hp);
+  $("set_hp").value=String(CFG.hp);
+  $("set_firstWeapon").checked=CFG.firstWeapon;
+  $("dur_m1").checked=true; $("dur_eq").checked=false;
+})();
+
+window.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape"){
+    if($("settings").classList.contains("show")) goHome();
+    if($("modal").classList.contains("show")) $("modal").classList.remove("show");
+    if($("drawer").classList.contains("show")) closeDrawer();
+  }
+});
+</script>
+</body>
+</html>
