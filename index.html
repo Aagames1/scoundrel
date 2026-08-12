@@ -25,6 +25,7 @@
   --dim:#9a9a9a;
 }
 
+
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -38,7 +39,9 @@ body{
   font-size:clamp(15px,1.6vw,19px);
 }
 
+
 .board{max-width:min(760px,96vw);margin:0 auto;position:relative;}
+
 
 .corner-buttons{
   position:absolute;
@@ -46,6 +49,7 @@ body{
   display:flex;gap:8px;
   z-index:5;
 }
+
 .pixel-btn{
   font-family:'Press Start 2P', monospace;
   font-size:.6rem;
@@ -57,6 +61,7 @@ body{
   cursor:pointer;
   line-height:1;
 }
+
 .pixel-btn:hover{background:#3a3a3a;}
 .pixel-btn:active{border-bottom-width:2px;transform:translateY(2px);}
 
@@ -88,6 +93,7 @@ body{
   border:2px solid var(--panel-border);
   box-shadow:0 6px 0 rgba(0,0,0,.35);
 }
+
 .deck-back{
   background:
     repeating-radial-gradient(circle at 12px 12px, #7a2323 0 4px, transparent 4px 12px),
@@ -97,9 +103,11 @@ body{
   outline:5px solid var(--maroon);
   outline-offset:-8px;
 }
+
 .discard-back{
   background:var(--maroon);
 }
+
 .pile-count{
   position:absolute;
   bottom:-12px;left:50%;
@@ -248,6 +256,7 @@ body{
   display:flex;flex-direction:column;justify-content:center;
   gap:10px;
 }
+
 .hint-box p{
   margin:0;
   font-size:1.15rem;
@@ -460,6 +469,9 @@ body{
   </details>
 </div>
 
+
+
+
 <div class="modal-overlay" id="rulesModal" hidden>
   <div class="modal">
     <h2>HOW TO PLAY</h2>
@@ -476,6 +488,7 @@ body{
     <div class="close-row"><button class="pixel-btn" id="closeRules">CLOSE</button></div>
   </div>
 </div>
+
 
 <div class="modal-overlay" id="gameOverModal" hidden>
   <div class="modal">
@@ -878,7 +891,7 @@ body{
     }
   }
 
-  // ---------- wiring ----------
+  // ---------- button setup ----------
   document.getElementById('fleeBtn').addEventListener('click', fleeRoom);
   document.getElementById('restartBtn').addEventListener('click', ()=>{ if(confirm('Abandon this run and start a new dungeon?')) newGame(); });
   document.getElementById('playAgainBtn').addEventListener('click', newGame);
