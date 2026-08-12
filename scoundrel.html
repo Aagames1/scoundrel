@@ -1,926 +1,891 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Scoundrel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scoundrel — a solitaire dungeon crawl</title>
 <style>
-  :root{
-    --bg:#0b0e14; --panel:#121826; --panel2:#0f1522;
-    --text:#eef2ff; --muted:#a7b0c0; --gold:#d4af37;
-    --line:rgba(255,255,255,.08);
-    --danger:#ff5c5c; --ok:#50fa7b; --blue:#6ea8ff;
-    --shadow:0 16px 40px rgba(0,0,0,.55);
-    --r:18px; --r2:14px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;overflow:hidden;background:var(--bg)}
-  body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);display:flex;align-items:center;justify-content:center}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 
-  .app{
-    width:min(980px,98vw);
-    height:min(620px,98vh);
-    border:1px solid var(--line);
-    border-radius:22px;
-    box-shadow:var(--shadow);
-    overflow:hidden;
-    display:flex;flex-direction:column;
-    background:
-      radial-gradient(900px 600px at 18% -10%, rgba(212,175,55,.10), transparent 58%),
-      radial-gradient(900px 600px at 110% 0%, rgba(110,168,255,.08), transparent 58%),
-      var(--bg);
-    position:relative;
-  }
-  .top{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px 14px;border-bottom:1px solid var(--line);
-    background:rgba(255,255,255,.02);
-    flex:0 0 auto;
-  }
-  .brand{letter-spacing:.18em;text-transform:uppercase;font-weight:950;color:var(--gold);font-size:.98rem}
-  .pill{
-    display:inline-flex;gap:8px;align-items:center;
-    padding:7px 10px;border-radius:999px;border:1px solid var(--line);
-    background:rgba(255,255,255,.02);color:var(--muted);
-    font-weight:900;font-size:.84rem;white-space:nowrap;
-  }
-  .pill b{color:var(--text)}
-  .screen{flex:1 1 auto;min-height:0;padding:12px;display:none}
-  .screen.show{display:block}
+:root{
+  --bg:#333333;
+  --bg-deep:#262626;
+  --panel:#2a2a2a;
+  --panel-border:#1a1a1a;
+  --card-face:#8f8f8f;
+  --card-face-hi:#9c9c9c;
+  --card-border:#181818;
+  --ink-dark:#202020;
+  --ink-red:#8b2f2f;
+  --accent-red:#c24a4a;
+  --maroon:#4a1f1f;
+  --maroon-2:#5a2626;
+  --heart-red:#6b2020;
+  --white:#eaeaea;
+  --dim:#9a9a9a;
+}
 
-  .panel{
-    border:1px solid var(--line);
-    border-radius:var(--r);
-    background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 120%),var(--panel);
-    box-shadow:0 10px 24px rgba(0,0,0,.25);
-    padding:10px;
-    min-height:0;
-  }
-  .panel.sub{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent 120%),var(--panel2)}
-  .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  .hrow .h{letter-spacing:.12em;text-transform:uppercase;font-weight:950;font-size:.76rem;color:var(--gold)}
-  .muted{color:var(--muted)}
-  .sm{font-size:.90rem;line-height:1.45}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse at 50% -20%, #3d3d3d 0%, transparent 55%),
+    var(--bg);
+  color:var(--white);
+  font-family:'VT323', monospace;
+  min-height:100vh;
+  padding:clamp(10px,2vw,22px) 14px clamp(16px,3vw,30px);
+  font-size:clamp(15px,1.6vw,19px);
+}
 
-  button{
-    border:none;border-radius:14px;padding:9px 12px;
-    font-weight:950;font-size:.95rem;cursor:pointer;user-select:none;
-    transition:transform .12s ease,filter .12s ease,opacity .12s ease;
-  }
-  button:active{transform:translateY(1px)}
-  button:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.7)}
-  .pri{background:var(--gold);color:#141824}
-  .sec{background:rgba(110,168,255,.16);border:1px solid rgba(110,168,255,.35);color:var(--text)}
-  .dng{background:rgba(255,92,92,.16);border:1px solid rgba(255,92,92,.45);color:var(--text)}
-  .pri:hover:not(:disabled),.sec:hover:not(:disabled),.dng:hover:not(:disabled){filter:brightness(1.06)}
-  .btns{display:flex;gap:10px;flex-wrap:wrap}
+.board{max-width:min(760px,96vw);margin:0 auto;position:relative;}
 
-  select{
-    width:100%;padding:10px 12px;border-radius:14px;
-    border:1px solid var(--line);
-    background:rgba(255,255,255,.02);
-    color:var(--text);
-    font-weight:800;outline:none;
-  }
-  select option{background:var(--panel2);color:var(--text)}
-  .lab{letter-spacing:.10em;text-transform:uppercase;font-weight:950;font-size:.72rem;color:var(--muted);margin:10px 0 6px}
-  .tog{
-    display:flex;gap:10px;align-items:flex-start;
-    padding:9px;border:1px solid var(--line);border-radius:14px;
-    background:rgba(255,255,255,.02);margin-top:10px;
-  }
-  .tog input{width:18px;height:18px;accent-color:var(--gold);margin-top:2px}
+.corner-buttons{
+  position:absolute;
+  top:0;right:0;
+  display:flex;gap:8px;
+  z-index:5;
+}
+.pixel-btn{
+  font-family:'Press Start 2P', monospace;
+  font-size:.6rem;
+  background:var(--panel);
+  color:var(--white);
+  border:2px solid var(--panel-border);
+  border-bottom-width:4px;
+  padding:8px 10px;
+  cursor:pointer;
+  line-height:1;
+}
+.pixel-btn:hover{background:#3a3a3a;}
+.pixel-btn:active{border-bottom-width:2px;transform:translateY(2px);}
 
-  .radioWrap{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
-  .radioTitle{font-weight:950;margin-bottom:8px}
-  .radioRow{display:flex;gap:14px;flex-wrap:wrap}
-  .rOpt{display:flex;gap:10px;align-items:center;cursor:pointer;user-select:none}
-  .rOpt input{width:18px;height:18px;accent-color:var(--gold)}
-  .rOpt .txt{font-weight:900}
-  .rOpt .sub{color:var(--muted);font-size:.88rem}
+.title{
+  font-family:'Press Start 2P', monospace;
+  font-size:clamp(1rem,3.2vw,1.4rem);
+  text-align:center;
+  letter-spacing:.06em;
+  margin:4px 0 clamp(10px,2vw,20px);
+  color:var(--white);
+  text-shadow:3px 3px 0 #000;
+}
 
-  .homeGrid{height:100%;display:grid;grid-template-columns:1.2fr .8fr;gap:12px;min-height:0}
-  .rulesPanel{display:flex;flex-direction:column;gap:10px;height:100%}
-  .rulesCompact{flex:1 1 auto;min-height:0;display:grid;gap:8px}
-  .rulesCompact .box{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
-  .setGrid{height:100%;display:grid;grid-template-columns:1fr;gap:12px;min-height:0}
+.table-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:clamp(8px,2vw,16px);
+  flex-wrap:wrap;
+  margin-bottom:clamp(8px,2vw,16px);
+}
 
-  .gameGrid{height:100%;display:grid;grid-template-columns:330px 1fr;gap:12px;min-height:0}
-  .leftCol{height:100%;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;min-height:0}
+.pile{position:relative;flex:0 0 auto;}
+.pile-back{
+  width:clamp(60px,11vw,96px);
+  aspect-ratio:96/134;
+  height:auto;
+  border-radius:6px;
+  border:2px solid var(--panel-border);
+  box-shadow:0 6px 0 rgba(0,0,0,.35);
+}
+.deck-back{
+  background:
+    repeating-radial-gradient(circle at 12px 12px, #7a2323 0 4px, transparent 4px 12px),
+    repeating-radial-gradient(circle at 0 0, #7a2323 0 3px, transparent 3px 10px),
+    var(--maroon-2);
+  background-size:24px 24px, 24px 24px, auto;
+  outline:5px solid var(--maroon);
+  outline-offset:-8px;
+}
+.discard-back{
+  background:var(--maroon);
+}
+.pile-count{
+  position:absolute;
+  bottom:-12px;left:50%;
+  transform:translateX(-50%);
+  font-family:'Press Start 2P', monospace;
+  font-size:.6rem;
+  background:var(--bg-deep);
+  border:2px solid var(--panel-border);
+  padding:4px 7px;
+  white-space:nowrap;
+}
+.pile-label{
+  text-align:center;
+  font-size:.7rem;
+  color:var(--dim);
+  margin-top:14px;
+  letter-spacing:.05em;
+}
 
-  .ibox{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.02);border-radius:var(--r2);padding:10px}
-  .ibox.gold{border-color:rgba(212,175,55,.22);background:rgba(212,175,55,.06)}
-  .ibox.blue{border-color:rgba(110,168,255,.20);background:rgba(110,168,255,.06)}
-  .ibox .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-weight:950}
-  .ibox .top .k{letter-spacing:.10em;text-transform:uppercase;font-size:.70rem;color:rgba(233,236,242,.88)}
-  .ibox .top .v{font-size:1.05rem;color:var(--blue)}
+.room-frame{
+  background:var(--panel);
+  border:3px solid var(--panel-border);
+  padding:clamp(6px,1.5vw,10px);
+  display:flex;
+  gap:clamp(5px,1.2vw,8px);
+}
+.room-cards{display:flex;gap:clamp(5px,1.2vw,8px);}
 
-  .hp{padding:10px;border-radius:var(--r2);border:1px solid var(--line);background:rgba(255,255,255,.02)}
-  .hpt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
-  .hpt .k{letter-spacing:.10em;text-transform:uppercase;color:var(--muted);font-weight:950;font-size:.70rem}
-  .bar{height:11px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.08)}
-  .fill{height:100%;width:50%;background:linear-gradient(90deg,var(--ok),var(--gold),var(--danger));border-radius:999px;transition:width .18s ease}
+.card{
+  width:clamp(60px,11vw,92px);
+  aspect-ratio:92/134;
+  height:auto;
+  background:linear-gradient(160deg, var(--card-face-hi), var(--card-face) 60%);
+  border:2px solid var(--card-border);
+  border-radius:6px;
+  position:relative;
+  cursor:pointer;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:clamp(4px,1vw,6px);
+  font-size:clamp(.72rem,2.3vw,1rem);
+  transition:transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.14), inset -2px -2px 0 rgba(0,0,0,.22);
+}
+.card.card--empty{
+  background:transparent;
+  border:2px dashed #4a4a4a;
+  cursor:default;
+}
+.card:hover:not(.card--empty){
+  transform:translateY(-4px);
+  box-shadow:0 6px 0 rgba(0,0,0,.4);
+}
+.card.hovered:not(.card--empty){outline:3px dashed var(--accent-red);outline-offset:2px;}
+.card.selected{outline:3px solid var(--accent-red);outline-offset:2px;transform:translateY(-4px);}
 
-  .durRow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-  .durBig{font-size:1.9rem;font-weight:950;letter-spacing:.02em;color:var(--gold);line-height:1}
-  .durHint{color:var(--muted);font-size:.82rem;line-height:1.25;margin-top:6px}
+.card .corner{
+  font-family:'Press Start 2P', monospace;
+  font-size:clamp(.66rem,1.9vw,.85rem);
+  line-height:1.55;
+  color:var(--ink-dark);
+  z-index:2;
+}
+.card.suit-red .corner{color:var(--ink-red);}
+.card .corner.bottom{align-self:flex-end;transform:rotate(180deg);}
 
-  .miniRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .mini{
-    width:38px;height:54px;border-radius:12px;background:#f6f7fb;
-    border:2px solid rgba(0,0,0,.25);box-shadow:0 8px 18px rgba(0,0,0,.22);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    user-select:none;line-height:1;
-  }
-  .mini .mr{font-weight:950;font-size:1.02rem}
-  .mini .ms{font-size:1.08rem;margin-top:2px}
-  .mini.red{color:#c92a2a}
-  .mini.blk{color:#1d2330}
+.card .suit-big{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:clamp(1.9rem,7.5vw,3.1rem);
+  line-height:1;
+  color:var(--ink-dark);
+  text-shadow:2px 2px 0 rgba(0,0,0,.18);
+}
+.card.suit-red .suit-big{color:var(--ink-red);}
+.card .face-badge{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.card .face-badge .face-letter{
+  font-family:'Press Start 2P', monospace;
+  font-size:clamp(1.1rem,4vw,1.6rem);
+  color:var(--ink-dark);
+}
+.card.suit-red .face-badge .face-letter{color:var(--ink-red);}
+.card .face-badge .suit-big{position:static;transform:none;font-size:clamp(1.3rem,5vw,2rem);}
 
-  .weaponSlot{
-    border-radius:var(--r);
-    border:1px dashed rgba(255,255,255,.14);
-    background:rgba(255,255,255,.02);
-    display:flex;align-items:center;justify-content:center;
-    min-height:0;overflow:hidden;padding:10px;
-  }
-  .plus{color:rgba(255,255,255,.35);font-weight:950;font-size:2.0rem}
+.mid-row{
+  display:flex;
+  gap:clamp(10px,2vw,16px);
+  align-items:flex-start;
+  margin-bottom:clamp(12px,2.5vw,20px);
+  flex-wrap:wrap;
+  justify-content:center;
+}
 
-  .board{height:100%;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;min-height:0;position:relative}
-  .msg{
-    padding:9px;border-radius:14px;border:1px solid var(--line);
-    background:rgba(255,255,255,.02);color:var(--muted);
-    min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;
-  }
-  .msg.ok{border-color:rgba(80,250,123,.35);background:rgba(80,250,123,.06);color:#dfffe9}
-  .msg.bad{border-color:rgba(255,92,92,.45);background:rgba(255,92,92,.06);color:#ffe3e3}
+.weapon-slot{
+  width:clamp(60px,11vw,96px);
+  aspect-ratio:96/134;
+  height:auto;
+  border-radius:6px;
+  border:2px solid var(--panel-border);
+  background:var(--card-face);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+  flex:0 0 auto;
+  box-shadow:0 6px 0 rgba(0,0,0,.35);
+  padding:4px;
+}
+.weapon-slot.empty{
+  background:#6f6f6f;
+}
+.weapon-slot .ws-label{
+  font-family:'Press Start 2P', monospace;
+  font-size:.55rem;
+  color:#3a3a3a;
+  text-align:center;
+  line-height:1.5;
+}
+.weapon-slot .ws-value{
+  font-family:'Press Start 2P', monospace;
+  font-size:1.1rem;
+  color:var(--ink-red);
+}
+.weapon-slot .ws-slain{
+  margin-top:6px;
+  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;
+}
+.ws-chip{
+  font-family:'Press Start 2P', monospace;
+  font-size:.45rem;
+  background:var(--bg-deep);
+  color:var(--white);
+  padding:2px 4px;
+  border:1px solid var(--panel-border);
+}
 
-  .toast{
-    position:absolute;left:50%;top:8px;transform:translateX(-50%);
-    padding:9px 12px;border-radius:999px;
-    border:1px solid rgba(80,250,123,.35);
-    background:rgba(80,250,123,.10);
-    color:#dfffe9;font-weight:950;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
-    opacity:0;pointer-events:none;
-    transition:opacity .16s ease, transform .16s ease;
-  }
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .toast.hide{opacity:0;transform:translateX(-50%) translateY(-6px)}
+.hint-box{
+  flex:1 1 300px;
+  background:#0e0e0e;
+  border:2px solid #000;
+  padding:clamp(10px,2vw,16px) clamp(12px,2vw,18px);
+  min-height:clamp(80px,13vw,110px);
+  display:flex;flex-direction:column;justify-content:center;
+  gap:10px;
+}
+.hint-box p{
+  margin:0;
+  font-size:1.15rem;
+  line-height:1.4;
+  color:var(--white);
+}
+.hint-box p + p{margin-top:2px;}
+.hint-box .hint-warn{
+  color:var(--accent-red);
+}
+.hint-box .hint-title{
+  font-family:'Press Start 2P', monospace;
+  font-size:.7rem;
+  color:var(--accent-red);
+  margin:0 0 4px;
+}
+.choice-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.choice-btn{
+  font-family:'Press Start 2P', monospace;
+  font-size:.6rem;
+  background:var(--panel);
+  color:var(--white);
+  border:2px solid #000;
+  border-bottom-width:4px;
+  padding:9px 10px;
+  cursor:pointer;
+  flex:1 1 auto;
+  line-height:1.4;
+}
+.choice-btn:hover:not(:disabled){background:#3a3a3a;}
+.choice-btn:active:not(:disabled){border-bottom-width:2px;transform:translateY(2px);}
+.choice-btn:disabled{opacity:.35;cursor:not-allowed;}
+.choice-btn.bare{border-color:var(--heart-red);}
+.choice-btn.cancel{opacity:.7;}
 
-  .grid4{
-    min-height:0;
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0,1fr));
-    grid-template-rows:repeat(2, minmax(0,1fr));
-    gap:10px;align-items:center;justify-items:center;
-  }
-  .cardw{
-    width:100%;height:100%;
-    display:flex;justify-content:center;align-items:center;
-    padding:6px;border-radius:var(--r);border:1px solid var(--line);
-    background:rgba(255,255,255,.02);
-    cursor:pointer;
-    transition:transform .14s ease, border-color .14s ease, opacity .14s ease, box-shadow .14s ease;
-    position:relative;overflow:hidden;
-  }
-  .cardw:hover{transform:translateY(-2px);border-color:rgba(212,175,55,.28)}
-  .cardw.used{opacity:.33;cursor:default;transform:none}
-  .cardw.usedGlow{opacity:.55;box-shadow:0 0 0 2px rgba(212,175,55,.18),0 0 22px rgba(212,175,55,.18) inset}
-  .cardw.selected{
-    border-color: rgba(110,168,255,.40);
-    box-shadow: 0 0 0 2px rgba(110,168,255,.10);
-    background: rgba(110,168,255,.04);
-  }
+.bottom-row{
+  display:flex;
+  align-items:center;
+  gap:clamp(12px,3vw,22px);
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-bottom:clamp(10px,2vw,18px);
+}
 
-  @keyframes usedPulse{
-    0%{box-shadow:0 0 0 0 rgba(212,175,55,0),0 0 0 rgba(212,175,55,0) inset}
-    60%{box-shadow:0 0 0 2px rgba(212,175,55,.28),0 0 24px rgba(212,175,55,.20) inset}
-    100%{box-shadow:0 0 0 2px rgba(212,175,55,.18),0 0 18px rgba(212,175,55,.14) inset}
-  }
-  .cardw.pulse{animation:usedPulse .22s ease forwards}
-  .card{
-    width:clamp(92px, 18vh, 128px);
-    aspect-ratio:2.5/3.5;
-    border-radius:16px;background:#f6f7fb;border:2px solid rgba(0,0,0,.25);
-    box-shadow:0 10px 24px rgba(0,0,0,.25);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    user-select:none;transform:translateZ(0);
-  }
-  .weaponSlot .card{width:clamp(96px, 22vh, 148px)}
-  .rk{font-size:clamp(1.6rem, 3.2vh, 2.2rem);font-weight:950;line-height:1}
-  .st{font-size:clamp(1.35rem, 2.7vh, 1.95rem);line-height:1}
-  .red{color:#c92a2a} .blk{color:#1d2330}
+.heart-wrap{position:relative;width:clamp(56px,9vw,76px);height:clamp(50px,8vw,70px);}
+.heart-shape{
+  position:absolute;inset:0;
+}
+.heart-shape:before,.heart-shape:after{
+  content:'';
+  position:absolute;
+  top:0;
+  width:50%;height:88%;
+  border-radius:50% 50% 0 0;
+  background:var(--heart-red);
+  border:2px solid #000;
+}
+.heart-shape:before{left:45%;transform:rotate(-45deg);transform-origin:0 100%;}
+.heart-shape:after{left:0;transform:rotate(45deg);transform-origin:100% 100%;}
+.heart-text{
+  position:absolute;
+  bottom:2px;left:0;right:0;
+  text-align:center;
+  font-family:'Press Start 2P', monospace;
+  font-size:.62rem;
+  color:var(--white);
+  text-shadow:2px 2px 0 #000;
+  z-index:2;
+}
 
-  .actions{display:flex;gap:10px;flex-wrap:wrap}
-  .actions button{flex:1 1 160px}
+.flee-btn{
+  font-family:'Press Start 2P', monospace;
+  font-size:.65rem;
+  background:var(--maroon);
+  color:var(--white);
+  border:2px solid #000;
+  border-bottom-width:5px;
+  padding:12px 16px;
+  cursor:pointer;
+}
+.flee-btn:hover:not(:disabled){background:#622a2a;}
+.flee-btn:active:not(:disabled){border-bottom-width:2px;transform:translateY(3px);}
+.flee-btn:disabled{opacity:.3;cursor:not-allowed;}
 
-  .drawer{
-    position:fixed;left:0;right:0;bottom:-240px;z-index:999;
-    background:rgba(12,14,20,.92);border-top:1px solid rgba(255,255,255,.10);
-    backdrop-filter:blur(8px);transition:bottom .18s ease;
-    box-shadow:0 -18px 50px rgba(0,0,0,.55);padding:12px;
-  }
-  .drawer.show{bottom:0}
-  .din{max-width:980px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-  .dttl{font-weight:950;letter-spacing:.10em;text-transform:uppercase;color:var(--gold);font-size:.84rem}
-  .dinfo{color:var(--muted);line-height:1.3}
+.turn-label{
+  font-family:'Press Start 2P', monospace;
+  font-size:.65rem;
+  color:var(--dim);
+}
 
-  @keyframes gridOut{to{opacity:.20;transform:translateY(10px)}}
-  .gridOut{animation:gridOut .16s ease forwards}
-  @keyframes dealIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-  .deal .cardw{animation:dealIn .20s ease both}
-  .deal .cardw:nth-child(1){animation-delay:.02s}
-  .deal .cardw:nth-child(2){animation-delay:.05s}
-  .deal .cardw:nth-child(3){animation-delay:.08s}
-  .deal .cardw:nth-child(4){animation-delay:.11s}
+.log-details{
+  background:var(--panel);
+  border:2px solid var(--panel-border);
+  padding:8px 14px;
+}
+.log-details summary{
+  cursor:pointer;
+  font-family:'Press Start 2P', monospace;
+  font-size:.6rem;
+  color:var(--dim);
+  outline:none;
+}
+.ledger-log{
+  margin-top:10px;
+  max-height:150px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:4px;
+  font-size:1rem;
+  color:var(--dim);
+}
+.ledger-log div{border-left:2px solid #444;padding-left:8px;}
+.ledger-log div.fresh{color:var(--white);border-left-color:var(--accent-red);}
 
-  @keyframes weaponPop{from{transform:translateY(6px) scale(.96);opacity:.0}to{transform:translateY(0) scale(1);opacity:1}}
-  .weaponSlot.pop .card{animation:weaponPop .18s ease both}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  .msg.bad.shake{animation:shake .18s ease}
+@media (prefers-reduced-motion: reduce){
+  .card, .pixel-btn, .flee-btn, .choice-btn{transition:none;}
+}
 
-  .centerCard{height:100%;display:grid;place-items:center}
-  .endBox{
-    width:min(620px, 96vw);
-    border-radius:22px;
-    border:1px solid var(--line);
-    background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 120%),var(--panel);
-    box-shadow:var(--shadow);
-    padding:18px;
-  }
-  .endTitle{font-weight:950;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);text-align:center;font-size:1.2rem;margin-bottom:8px}
-  .endSub{color:var(--muted);text-align:center;line-height:1.45;margin-bottom:14px}
-  .statBox{border:1px solid var(--line);background:rgba(255,255,255,.02);border-radius:14px;padding:12px;margin-bottom:14px}
-  .sr{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);color:var(--muted);font-weight:900}
-  .sr:last-child{border-bottom:none} .sr b{color:var(--text)}
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.82);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  z-index:50;
+}
+.modal-overlay[hidden]{display:none;}
+.modal{
+  background:var(--panel);
+  border:3px solid #000;
+  max-width:560px;
+  width:100%;
+  max-height:82vh;
+  overflow-y:auto;
+  padding:26px;
+}
+.modal h2{
+  font-family:'Press Start 2P', monospace;
+  font-size:1rem;
+  color:var(--accent-red);
+  margin-top:0;
+  line-height:1.6;
+}
+.modal p, .modal li{font-size:1.1rem;line-height:1.55;color:var(--white);}
+.modal ul{padding-left:1.2em;}
+.modal .close-row{margin-top:20px;text-align:right;}
 
-  .modal{
-    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-    background:rgba(0,0,0,.62);
-    z-index:1500;
-    padding:12px;
-  }
-  .modal.show{display:flex}
-  .modalCard{
-    width:min(520px, 96vw);
-    border-radius:22px;
-    border:1px solid var(--line);
-    background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 120%),var(--panel);
-    box-shadow:var(--shadow);
-    padding:16px;
-  }
-  .mTitle{
-    letter-spacing:.10em;text-transform:uppercase;font-weight:950;
-    color:var(--gold);font-size:.86rem;margin-bottom:8px;text-align:center;
-  }
+.gameover-score{
+  font-family:'Press Start 2P', monospace;
+  font-size:2.2rem;
+  color:var(--accent-red);
+  text-align:center;
+  margin:14px 0 10px;
+}
+.gameover-title{
+  text-align:center;
+  font-family:'Press Start 2P', monospace;
+  font-size:1.1rem;
+  line-height:1.6;
+}
+.gameover-sub{text-align:center;color:var(--dim);margin-bottom:6px;font-size:1.05rem;}
 
-  @media (max-width:900px){
-    .homeGrid{grid-template-columns:1fr}
-    .gameGrid{grid-template-columns:1fr}
-  }
+@media (max-width:480px){
+  .room-frame{padding:6px;gap:5px;}
+  .room-cards{gap:5px;}
+}
 </style>
 </head>
 <body>
-<div class="app" id="app">
-  <div class="top">
-    <div class="brand">Scoundrel</div>
-    <div class="pill" id="topPill">Cards left: <b>0</b></div>
+<div class="board">
+  <div class="corner-buttons">
+    <button class="pixel-btn" id="rulesBtn">?</button>
+    <button class="pixel-btn" id="restartBtn">⟳</button>
   </div>
+  <h1 class="title">SCOUNDREL</h1>
 
-  <!-- HOME -->
-  <div id="home" class="screen show">
-    <div class="homeGrid">
-      <div class="panel sub rulesPanel">
-        <div class="hrow"><div class="h">How to play</div><div class="pill">A = 14</div></div>
-        <div class="rulesCompact sm">
-          <div class="box"><b>Rooms:</b> 4 cards. Resolve <b>exactly 3</b>. The 4th carries.</div>
-          <div class="box"><b>Monsters:</b> ♠/♣ damage you. Barehanded = full value.</div>
-          <div class="box"><b>Weapons:</b> ♦ equips. Weapon damage = its value.</div>
-          <div class="box"><b>Weapon-kill:</b> take <b>max(0, monster − weapon)</b>, attach that monster.</div>
-          <div class="box"><b>Durability:</b> after weapon-kill becomes <b>monster − 1</b> (default) or <b>monster</b>.</div>
-          <div class="box"><b>Potions:</b> ♥ multiple per room, but only the <b>first</b> heals.</div>
-          <div class="box"><b>Flee:</b> only before resolving anything. All 4 go to <b>deck bottom</b>.</div>
-          <div class="box muted"><b>Deck:</b> ♥/♦ J Q K A removed.</div>
-        </div>
-      </div>
+  <div class="table-row">
+    <div class="pile deck-pile" id="deckPile">
+      <div class="pile-back deck-back"></div>
+      <div class="pile-count" id="deckCountBadge">40</div>
+    </div>
 
-      <div class="panel">
-        <div class="hrow"><div class="h">Start</div><div class="pill">Run</div></div>
-        <div class="lab">Starting health</div>
-        <select id="home_hp"></select>
-        <div class="btns" style="margin-top:12px">
-          <button class="sec" onclick="goSettings()">Settings</button>
-          <button class="pri" onclick="startGame()">Start</button>
-        </div>
-      </div>
+    <div class="room-frame">
+      <div class="room-cards" id="roomCards"></div>
+    </div>
+
+    <div class="pile discard-pile" id="discardPile">
+      <div class="pile-back discard-back"></div>
+      <div class="pile-count" id="discardCountBadge">0</div>
     </div>
   </div>
 
-  <!-- SETTINGS (no start button here) -->
-  <div id="settings" class="screen">
-    <div class="setGrid">
-      <div class="panel sub">
-        <div class="hrow"><div class="h">Settings</div><div class="pill">Run</div></div>
-
-        <div class="lab">Starting health</div><select id="set_hp"></select>
-
-        <div class="tog">
-          <input type="checkbox" id="set_firstWeapon" />
-          <div><div style="font-weight:950">Guarantee weapon in first room</div><div class="sm muted">At least one ♦ in the first 4.</div></div>
-        </div>
-
-        <div class="radioWrap">
-          <div class="radioTitle">Durability after a weapon-kill</div>
-          <div class="radioRow">
-            <label class="rOpt">
-              <input type="radio" name="durMode" value="m1" checked />
-              <div><div class="txt">monster − 1</div><div class="sub">default</div></div>
-            </label>
-            <label class="rOpt">
-              <input type="radio" name="durMode" value="eq" />
-              <div><div class="txt">monster</div><div class="sub">equals monster value</div></div>
-            </label>
-          </div>
-        </div>
-
-        <div class="radioWrap">
-          <div class="radioTitle">Winning condition</div>
-          <div class="radioRow">
-            <label class="rOpt">
-              <input type="radio" name="winMode" value="clearAll" checked />
-              <div><div class="txt">Clear final room</div><div class="sub">default (clear every last card)</div></div>
-            </label>
-            <label class="rOpt">
-              <input type="radio" name="winMode" value="enterLast" />
-              <div><div class="txt">Win on entering final room</div><div class="sub">don’t clear last room cards</div></div>
-            </label>
-          </div>
-        </div>
-
-        <div class="tog">
-          <input type="checkbox" id="set_autoNext" />
-          <div><div style="font-weight:950">Auto next room</div><div class="sm muted">When the room requirement is met, auto-advance.</div></div>
-        </div>
-
-        <div class="btns" style="margin-top:12px">
-          <button class="sec" onclick="goHome()">Back</button>
-        </div>
-      </div>
+  <div class="mid-row">
+    <div class="weapon-slot empty" id="weaponSlot"></div>
+    <div class="hint-box" id="hintBox">
+      <p id="hintText">Choose a card from the room, or flee it.</p>
     </div>
   </div>
 
-  <!-- GAME -->
-  <div id="game" class="screen">
-    <div class="gameGrid">
-      <div class="leftCol">
-        <div class="hp">
-          <div class="hpt"><div class="k">Health</div><div style="font-weight:950"><span id="hpNow">20</span>/<span id="hpMax">20</span></div></div>
-          <div class="bar"><div class="fill" id="hpFill"></div></div>
-          <div class="sm muted" id="hpHint" style="margin-top:7px">Stay above zero.</div>
-        </div>
-
-        <div class="ibox gold">
-          <div class="durRow">
-            <div class="k" style="letter-spacing:.10em;text-transform:uppercase;font-weight:950;font-size:.70rem;color:rgba(233,236,242,.88)">Durability</div>
-            <div class="durBig" id="durVal">14</div>
-          </div>
-          <div class="durHint" id="durSub">First weapon-kill can be up to 14.</div>
-          <div class="miniRow" id="durMini"></div>
-        </div>
-
-        <div class="weaponSlot" id="weaponSlot"><div class="plus">+</div></div>
-
-        <div class="ibox blue">
-          <div class="top"><div class="k">Cards left</div><div class="v" id="deckLeft">0</div></div>
-          <div class="sm muted" id="decksClearedLine" style="margin-top:6px;display:none">Decks cleared: <b id="decksClearedVal">0</b></div>
-        </div>
-      </div>
-
-      <div class="panel board" id="board">
-        <div class="toast" id="toast">Deck cleared</div>
-
-        <div class="btns" style="justify-content:space-between">
-          <div class="pill" id="cardsLeftPill">Cards left: <b>0</b></div>
-          <div class="pill" id="deckCountPill" style="display:none">Decks cleared: <b>0</b></div>
-        </div>
-
-        <div class="msg" id="msg">Choose a card.</div>
-        <div class="grid4" id="grid"></div>
-
-        <div class="actions">
-          <button class="dng" id="fleeBtn" onclick="fleeRoom()">Flee</button>
-          <button class="pri" id="nextBtn" onclick="nextRoom(false)">Next Room</button>
-          <button class="sec" id="menuBtn" onclick="openMenu()">Menu</button>
-        </div>
-      </div>
+  <div class="bottom-row">
+    <div class="heart-wrap">
+      <div class="heart-shape"></div>
+      <div class="heart-text" id="healthText">20/20</div>
     </div>
+    <button class="flee-btn" id="fleeBtn">FLEE ROOM</button>
+    <div class="turn-label">TURN <span id="turnCount">1</span></div>
   </div>
 
-  <!-- END SCREEN -->
-  <div id="endScreen" class="screen">
-    <div class="centerCard">
-      <div class="endBox">
-        <div class="endTitle" id="endTitle">Deck cleared</div>
-        <div class="endSub" id="endSub">You beat the run.</div>
-        <div class="statBox" id="endStats"></div>
-        <div class="btns" style="justify-content:center">
-          <button class="sec" onclick="toHome()">Home</button>
-          <button class="pri" id="endEndlessBtn" onclick="startEndless()">Endless</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <details class="log-details">
+    <summary>LEDGER</summary>
+    <div class="ledger-log" id="ledgerLog"></div>
+  </details>
+</div>
 
-  <!-- MENU MODAL (no settings, no restart) -->
-  <div class="modal" id="menuModal" aria-hidden="true">
-    <div class="modalCard">
-      <div class="mTitle">Menu</div>
-      <div class="statBox" id="menuStats"></div>
-      <div class="btns" style="justify-content:center">
-        <button class="sec" onclick="closeMenu()">Resume</button>
-        <button class="sec" onclick="menuToHome()">Home</button>
-      </div>
-    </div>
+<div class="modal-overlay" id="rulesModal" hidden>
+  <div class="modal">
+    <h2>HOW TO PLAY</h2>
+    <p>Descend through a dungeon built from a deck of cards: Spades (♠, 2-A), Clubs (♣, 2-A), Diamonds (♦, 2–10), and Hearts (♥, 2–10). J = 11, Q = 12, K = 13, A = 14. Your max health starts at 20.</p>
+    <p>Each room lays out four cards. Before interacting with any of them, you may <strong>flee</strong> the room once, shuffling all four cards to the bottom of the dungeon — but you can't flee two rooms in a row, and once you've resolved a card you cannot flee that room anymore.</p>
+    <p>Otherwise, resolve three of the four cards, one at a time, in whatever order you like:</p>
+    <ul>
+      <li><strong>Diamonds</strong> — Weapons. Click it to immediately equip it. Your old weapon (and any monster killed on it) is discarded.</li>
+      <li><strong>Spades and Clubs</strong> — Monsters. Choose to either fight it barehanded (take its full value in damage) or with your weapon (take the monster's value minus the weapon's value, minimum zero). A weapon that has slain something can only be used on monsters of <em>strictly lower</em> value than the last one it killed — a Level 6 kill means you can only use it on monsters of value 5 or lower.</li>
+      <li><strong>Hearts</strong> — Health Potions. Click it to heal you for its value, up to your maximum HP. You can only use one potion per room; clicking a second one causes it to be wasted.</li>
+    </ul>
+    <p>The fourth, unplayed card carries over into the next room, joined by three new cards. You win by clearing every card from the dungeon. You lose if your health reaches zero.</p>
+    <p><strong>Scoring:</strong> Survive and your score is your remaining health — unless you finish at the max 20 HP, and your very last card was a health potion, in which case you add that potion's value as a bonus. Fall in battle, and your score is the negative sum of every monster still left remaining in the dungeon.</p>
+    <div class="close-row"><button class="pixel-btn" id="closeRules">CLOSE</button></div>
   </div>
 </div>
 
-<!-- Fight drawer -->
-<div class="drawer" id="drawer">
-  <div class="din">
-    <div>
-      <div class="dttl" id="dTitle">Fight</div>
-      <div class="dinfo" id="dInfo"></div>
-    </div>
-    <div class="btns" id="dBtns"></div>
-    <button class="sec" onclick="closeDrawer()">Close</button>
+<div class="modal-overlay" id="gameOverModal" hidden>
+  <div class="modal">
+    <div class="gameover-title" id="gameOverTitle">YOU ESCAPED</div>
+    <div class="gameover-sub" id="gameOverSub"></div>
+    <div class="gameover-score" id="gameOverScore">0</div>
+    <div class="close-row"><button class="pixel-btn" id="playAgainBtn">DESCEND AGAIN</button></div>
   </div>
 </div>
 
 <script>
-"use strict";
-const $=id=>document.getElementById(id), SC=["home","settings","game","endScreen"], show=s=>SC.forEach(x=>$(x).classList.toggle("show",x===s));
-const SU=["♠","♣","♥","♦"], RED=new Set(["♥","♦"]), RK=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-const isRed=s=>RED.has(s), val=r=>r==="A"?14:r==="J"?11:r==="Q"?12:r==="K"?13:parseInt(r,10), nm=c=>c.rank+c.suit;
+(function(){
+  "use strict";
+  const MAX_HEALTH = 20;
+  const SUIT_SYMBOL = {clubs:'♣', spades:'♠', diamonds:'♦', hearts:'♥'};
+  const SUIT_NAME = {clubs:'Clubs', spades:'Spades', diamonds:'Diamonds', hearts:'Hearts'};
+  const RED_SUITS = {diamonds:true, hearts:true};
 
-const CFG={hp:20,firstWeapon:false,autoNext:false};
+  let state = null;
+  let hoverInfo = null; // {kind:'card'|'pile'|'weapon', ...}
 
-const G={
-  deck:[],cards:[],carry:null,
-  hp:20,hpMax:20,faced:0,healed:false,fledLast:false,
-  weapon:null,pendingI:null,pendingV:null,
-  endless:false,decksCleared:0,
-  inLastRoom:false,roomSize:4,
-  stats:{fought:0,damage:0},
-  transitioning:false
-};
-
-const fill=(id,items)=>{const s=$(id);s.innerHTML="";items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;s.appendChild(o);});};
-
-const buildDeck=()=>{const d=[];for(const s of SU)for(const r of RK){if(isRed(s)&&(r==="J"||r==="Q"||r==="K"||r==="A"))continue;d.push({rank:r,suit:s});}return d;};
-const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}};
-const fresh=()=>{G.deck=buildDeck();sh(G.deck);};
-
-const drawerOpen=()=>$("drawer").classList.contains("show");
-const wDmg=()=>G.weapon?val(G.weapon.card.rank):0;
-const equip=c=>G.weapon={card:{...c},monsters:[],dur:14};
-const canWeaponKill=(mv)=>!!G.weapon && mv<=G.weapon.dur;
-
-function winMode(){
-  const picked=document.querySelector('input[name="winMode"]:checked');
-  return picked ? picked.value : "clearAll";
-}
-function durMinusOne(){
-  const picked=document.querySelector('input[name="durMode"]:checked');
-  return !picked || picked.value==="m1";
-}
-
-function requiredThisRoom(){
-  return G.inLastRoom ? G.roomSize : 3;
-}
-function canProceed(){
-  return G.faced >= requiredThisRoom();
-}
-
-function setTransition(on){
-  G.transitioning=!!on;
-  $("fleeBtn").disabled = on || !(G.faced===0 && !G.fledLast);
-  $("nextBtn").disabled = on || !canProceed();
-  $("menuBtn").disabled = on;
-}
-
-function toast(text){
-  const t=$("toast");
-  t.textContent=text;
-  t.classList.remove("hide");
-  t.classList.add("show");
-  setTimeout(()=>{ t.classList.remove("show"); t.classList.add("hide"); }, 1050);
-}
-
-function updateTopPill(){ $("topPill").innerHTML=`Cards left: <b>${G.deck.length}</b>`; }
-function setSelectedCard(i){ [...$("grid").children].forEach((el, idx)=> el.classList.toggle("selected", idx===i)); }
-function clearSelectedCard(){ [...$("grid").children].forEach(el=> el.classList.remove("selected")); }
-
-function drawFromDeck(){
-  if(G.deck.length===0 && G.endless){
-    G.decksCleared++;
-    toast(`Deck cleared: ${G.decksCleared}`);
-    fresh();
-  }
-  return G.deck.shift();
-}
-
-function guaranteeFirstWeapon(){
-  const peek=[], carry=G.carry?1:0, need=4-carry;
-  if(G.carry) peek.push(G.carry);
-  while(G.deck.length<need){ const x=buildDeck(); sh(x); G.deck.push(...x); }
-  for(let i=0;i<need;i++) peek.push(G.deck[i]);
-  if(peek.some(c=>c.suit==="♦")) return;
-  const idx=G.deck.findIndex(c=>c.suit==="♦");
-  if(idx>-1) [G.deck[0],G.deck[idx]]=[G.deck[idx],G.deck[0]];
-}
-
-function goSettings(){
-  $("set_hp").value=String(CFG.hp);
-  $("set_firstWeapon").checked=CFG.firstWeapon;
-  $("set_autoNext").checked=CFG.autoNext;
-  show("settings");
-}
-function goHome(){ $("home_hp").value=String(CFG.hp); show("home"); }
-function toHome(){ closeMenu(true); show("home"); }
-
-function startGame(){
-  closeMenu(true);
-  Object.assign(G,{
-    cards:[],carry:null,faced:0,healed:false,fledLast:false,
-    weapon:null,pendingI:null,pendingV:null,
-    endless:false,decksCleared:0,
-    inLastRoom:false,roomSize:4,
-    stats:{fought:0,damage:0},
-    hp:CFG.hp,hpMax:CFG.hp,transitioning:false
-  });
-  fresh(); if(CFG.firstWeapon) guaranteeFirstWeapon();
-  show("game");
-  drawRoom(true);
-}
-
-function startEndless(){
-  closeMenu(true);
-  show("game");
-  G.endless=true;
-  G.decksCleared=1;
-  $("decksClearedLine").style.display="block";
-  $("deckCountPill").style.display="inline-flex";
-  toast(`Deck cleared: ${G.decksCleared}`);
-  fresh(); G.carry=null; G.faced=0; G.healed=false; G.fledLast=false;
-  G.inLastRoom=false; G.roomSize=4;
-  drawRoom(true);
-}
-
-function closeDrawer(){
-  $("drawer").classList.remove("show");
-  G.pendingI=null; G.pendingV=null;
-  clearSelectedCard();
-}
-
-function showEndScreen({title,sub,allowEndless}){
-  $("endTitle").textContent = title;
-  $("endSub").textContent = sub;
-  $("endEndlessBtn").style.display = allowEndless ? "" : "none";
-
-  const stats =
-    `<div class="sr"><span>Monsters fought</span><b>${G.stats.fought}</b></div>`+
-    `<div class="sr"><span>Damage taken</span><b>${G.stats.damage}</b></div>`+
-    (G.endless ? `<div class="sr"><span>Decks cleared</span><b>${G.decksCleared}</b></div>` : ``);
-
-  $("endStats").innerHTML = stats;
-  show("endScreen");
-}
-
-function gameOver(){
-  closeDrawer();
-  showEndScreen({
-    title:"Game over",
-    sub: G.endless ? "Endless run ended." : "Run ended.",
-    allowEndless:false
-  });
-  return false;
-}
-
-function dmg(d){
-  G.stats.damage+=d; G.hp-=d;
-  if(G.hp<=0){ G.hp=0; ui(false); return gameOver(); }
-  return true;
-}
-
-/* ✅ Core change: last room is determined by deck exhaustion, not "room 13" */
-function drawRoom(isNew){
-  closeDrawer();
-  G.faced=0; G.healed=false; G.pendingI=null; G.pendingV=null;
-
-  const cs=[];
-  if(G.carry){ cs.push({...G.carry,used:false}); G.carry=null; }
-
-  while(cs.length<4){
-    const c = G.endless ? drawFromDeck() : G.deck.shift();
-    if(!c) break;
-    cs.push({...c,used:false});
+  function buildDeck(){
+    const ranks = [
+      {label:'2',value:2},{label:'3',value:3},{label:'4',value:4},{label:'5',value:5},
+      {label:'6',value:6},{label:'7',value:7},{label:'8',value:8},{label:'9',value:9},
+      {label:'10',value:10},{label:'J',value:11},{label:'Q',value:12},{label:'K',value:13},{label:'A',value:14}
+    ];
+    const deck = [];
+    ['clubs','spades'].forEach(suit=>{
+      ranks.forEach(r=>{
+        deck.push({id:suit+'-'+r.label, suit, type:'monster', label:r.label, value:r.value});
+      });
+    });
+    ranks.filter(r=>r.value<=10).forEach(r=>{
+      deck.push({id:'diamonds-'+r.label, suit:'diamonds', type:'weapon', label:r.label, value:r.value});
+      deck.push({id:'hearts-'+r.label, suit:'hearts', type:'potion', label:r.label, value:r.value});
+    });
+    return deck;
   }
 
-  // If no cards exist at all (should only happen if you somehow start empty)
-  if(!G.endless && cs.length===0){
-    return showEndScreen({
-      title:"Deck cleared",
-      sub:"No cards remain.",
-      allowEndless:true
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function cardName(card){ return card.label + ' of ' + SUIT_NAME[card.suit]; }
+
+  function newGame(){
+    const deck = shuffle(buildDeck());
+    state = {
+      deck, room: [], discard: [],
+      weapon: null,
+      health: MAX_HEALTH,
+      turnCount: 1,
+      potionUsedThisTurn: false,
+      lastActionWasFlee: false,
+      resolvedThisTurn: 0,
+      turnTarget: 0,
+      selectedMonsterId: null,
+      lastResolvedCard: null,
+      gameOver: false, result: null, score: 0,
+      log: []
+    };
+    fillRoom();
+    state.turnTarget = state.room.length === 4 ? 3 : state.room.length;
+    addLog('You step into the dungeon.', true);
+    hoverInfo = null;
+    render();
+  }
+
+  function fillRoom(){
+    while(state.room.length < 4 && state.deck.length > 0){
+      state.room.push(state.deck.pop());
+    }
+  }
+
+  function addLog(text, fresh){
+    state.log.push({text, fresh: !!fresh});
+    if(state.log.length > 60) state.log.shift();
+  }
+
+  function canUseWeapon(monster){
+    if(!state.weapon) return false;
+    if(state.weapon.slain.length === 0) return true;
+    const last = state.weapon.slain[state.weapon.slain.length-1];
+    return monster.value < last.value;
+  }
+
+  function endWave(){
+    state.potionUsedThisTurn = false;
+    state.lastActionWasFlee = false;
+    state.turnCount++;
+    fillRoom();
+    state.turnTarget = state.room.length === 4 ? 3 : state.room.length;
+    state.resolvedThisTurn = 0;
+    checkWin();
+  }
+
+  function checkWin(){
+    if(state.gameOver) return;
+    if(state.deck.length === 0 && state.room.length === 0){
+      state.gameOver = true;
+      state.result = 'win';
+      let score = state.health;
+      if(state.health === MAX_HEALTH && state.lastResolvedCard && state.lastResolvedCard.suit === 'hearts'){
+        score = MAX_HEALTH + state.lastResolvedCard.value;
+        addLog('The dungeon falls silent. Full strength held to the last. Score: ' + score, true);
+      } else {
+        addLog('The dungeon falls silent. You made it out. Score: ' + score, true);
+      }
+      state.score = score;
+    }
+  }
+
+  function loseGame(){
+    state.gameOver = true;
+    state.result = 'lose';
+    const remaining = state.deck.filter(c=>c.type==='monster').reduce((s,c)=>s+c.value,0);
+    state.score = -remaining;
+    addLog('Your torch gutters out. Defeated. Score: ' + state.score, true);
+  }
+
+  function equipWeapon(card){
+    if(state.weapon){ state.discard.push(state.weapon.card, ...state.weapon.slain); }
+    state.weapon = {card, value: card.value, slain: []};
+    addLog('Equipped ' + cardName(card) + ' — deals ' + card.value + ' damage.', true);
+  }
+
+  function drinkPotion(card){
+    if(state.potionUsedThisTurn){
+      state.discard.push(card);
+      addLog('A second potion this turn — the ' + cardName(card) + ' was wasted.', true);
+    } else {
+      const before = state.health;
+      state.health = Math.min(MAX_HEALTH, state.health + card.value);
+      state.potionUsedThisTurn = true;
+      state.discard.push(card);
+      addLog('Drank ' + cardName(card) + ', healed ' + (state.health-before) + ' HP (' + state.health + '/' + MAX_HEALTH + ').', true);
+    }
+  }
+
+  function fightMonster(card, useWeapon){
+    let dmg;
+    if(useWeapon && canUseWeapon(card)){
+      dmg = Math.max(0, card.value - state.weapon.value);
+      state.weapon.slain.push(card);
+      addLog('Struck ' + cardName(card) + ' with your ' + cardName(state.weapon.card) + ' — dealt ' + state.weapon.value + ', took ' + dmg + ' damage.', true);
+    } else {
+      dmg = card.value;
+      state.discard.push(card);
+      addLog('Fought ' + cardName(card) + ' barehanded — took ' + dmg + ' damage.', true);
+    }
+    state.health -= dmg;
+  }
+
+  function resolveCard(cardId, useWeapon){
+    if(state.gameOver) return;
+    const idx = state.room.findIndex(c=>c.id===cardId);
+    if(idx === -1) return;
+    const card = state.room[idx];
+    state.room.splice(idx,1);
+    state.selectedMonsterId = null;
+    state.lastResolvedCard = card;
+    state.lastActionWasFlee = false;
+
+    if(card.type === 'weapon') equipWeapon(card);
+    else if(card.type === 'potion') drinkPotion(card);
+    else fightMonster(card, useWeapon);
+
+    state.resolvedThisTurn++;
+
+    if(state.health <= 0){ loseGame(); render(); return; }
+    if(state.resolvedThisTurn >= state.turnTarget){ endWave(); }
+    render();
+  }
+
+  function fleeRoom(){
+    if(state.gameOver || state.lastActionWasFlee || state.room.length === 0 || state.resolvedThisTurn > 0) return;
+    const cards = state.room.slice();
+    state.room = [];
+    state.deck.unshift(...cards);
+    state.lastActionWasFlee = true;
+    state.potionUsedThisTurn = false;
+    state.selectedMonsterId = null;
+    addLog('You flee the room, sliding it to the bottom of the dungeon.', true);
+    state.turnCount++;
+    fillRoom();
+    state.turnTarget = state.room.length === 4 ? 3 : state.room.length;
+    state.resolvedThisTurn = 0;
+    checkWin();
+    render();
+  }
+
+  // ---------- hint text ----------
+  function computeHintText(){
+    if(state.gameOver) return state.result==='win' ? 'Dungeon cleared' : 'The dungeon claimed you';
+    if(state.selectedMonsterId) return null; // choice buttons take over
+    if(hoverInfo){
+      if(hoverInfo.kind==='monster') return 'Attacks for ' + hoverInfo.card.value + ' damage';
+      if(hoverInfo.kind==='weaponCard') return 'Weapon — deals ' + hoverInfo.card.value + ' damage';
+      if(hoverInfo.kind==='deck') return state.deck.length + ' card' + (state.deck.length===1?'':'s') + ' left';
+      if(hoverInfo.kind==='discard') return state.discard.length + ' card' + (state.discard.length===1?'':'s') + ' discarded';
+      if(hoverInfo.kind==='weaponSlot'){
+        if(!state.weapon) return 'No weapon equipped';
+        const last = state.weapon.slain[state.weapon.slain.length-1];
+        return state.weapon.value + ' damage' + (last ? (' — cannot be used against ' + last.label + ' or stronger') : ' — unused');
+      }
+    }
+    if(state.lastActionWasFlee) return 'You fled — no fleeing twice in a row';
+    return 'Choose a card, or flee the room';
+  }
+
+  // ---------- rendering ----------
+  const el = {
+    deckCountBadge: document.getElementById('deckCountBadge'),
+    discardCountBadge: document.getElementById('discardCountBadge'),
+    deckPile: document.getElementById('deckPile'),
+    discardPile: document.getElementById('discardPile'),
+    weaponSlot: document.getElementById('weaponSlot'),
+    roomCards: document.getElementById('roomCards'),
+    hintText: document.getElementById('hintText'),
+    hintBox: document.getElementById('hintBox'),
+    fleeBtn: document.getElementById('fleeBtn'),
+    turnCount: document.getElementById('turnCount'),
+    healthText: document.getElementById('healthText'),
+    ledgerLog: document.getElementById('ledgerLog'),
+    gameOverModal: document.getElementById('gameOverModal'),
+    gameOverTitle: document.getElementById('gameOverTitle'),
+    gameOverSub: document.getElementById('gameOverSub'),
+    gameOverScore: document.getElementById('gameOverScore'),
+  };
+
+  function pipsMarkup(card){
+    if(card.value > 10){
+      return '<div class="face-badge"><div class="face-letter">' + card.label + '</div><div class="suit-big">' + SUIT_SYMBOL[card.suit] + '</div></div>';
+    }
+    return '<div class="suit-big">' + SUIT_SYMBOL[card.suit] + '</div>';
+  }
+
+  function makeCardEl(card, opts){
+    opts = opts || {};
+    const div = document.createElement('div');
+    const redClass = RED_SUITS[card.suit] ? ' suit-red' : '';
+    div.className = 'card' + redClass +
+      (card.id===state.selectedMonsterId ? ' selected' : '') +
+      (hoverInfo && hoverInfo.id===card.id ? ' hovered' : '');
+    div.innerHTML =
+      '<span class="corner">' + card.label + '<br>' + SUIT_SYMBOL[card.suit] + '</span>' +
+      pipsMarkup(card) +
+      '<span class="corner bottom">' + card.label + '<br>' + SUIT_SYMBOL[card.suit] + '</span>';
+    if(opts.small){ div.style.width='60px'; div.style.height='84px'; }
+    return div;
+  }
+
+  function hintKindFor(card){
+    if(card.type==='monster') return 'monster';
+    if(card.type==='weapon') return 'weaponCard';
+    return 'potion';
+  }
+
+  function render(){
+    // health
+    el.healthText.textContent = Math.max(0,state.health) + '/' + MAX_HEALTH;
+    el.turnCount.textContent = state.turnCount;
+    el.deckCountBadge.textContent = state.deck.length;
+    el.discardCountBadge.textContent = state.discard.length;
+
+    // weapon slot
+    el.weaponSlot.innerHTML = '';
+    if(state.weapon){
+      el.weaponSlot.classList.remove('empty');
+      const redClass = RED_SUITS[state.weapon.card.suit] ? ' suit-red' : '';
+      el.weaponSlot.innerHTML =
+        '<div class="ws-label' + redClass + '">' + state.weapon.card.label + SUIT_SYMBOL.diamonds + '</div>' +
+        '<div class="ws-value">' + state.weapon.value + '</div>' +
+        '<div class="ws-slain" id="wsSlain"></div>';
+      const slainWrap = el.weaponSlot.querySelector('#wsSlain');
+      state.weapon.slain.forEach(m=>{
+        const chip = document.createElement('div');
+        chip.className = 'ws-chip';
+        chip.textContent = m.label + SUIT_SYMBOL[m.suit];
+        slainWrap.appendChild(chip);
+      });
+      el.weaponSlot.querySelector('.ws-label').style.color = RED_SUITS[state.weapon.card.suit] ? 'var(--ink-red)' : 'var(--ink-dark)';
+    } else {
+      el.weaponSlot.classList.add('empty');
+      el.weaponSlot.innerHTML = '<div class="ws-label">BARE<br>HANDS</div>';
+    }
+    el.weaponSlot.onmouseenter = ()=>{ hoverInfo={kind:'weaponSlot'}; updateHintOnly(); };
+    el.weaponSlot.onmouseleave = ()=>{ hoverInfo=null; updateHintOnly(); };
+
+    // room
+    el.roomCards.innerHTML = '';
+    for(let i=0;i<4;i++){
+      const card = state.room[i];
+      if(!card){
+        const empty = document.createElement('div');
+        empty.className = 'card card--empty';
+        el.roomCards.appendChild(empty);
+        continue;
+      }
+      const cardEl = makeCardEl(card);
+      cardEl.addEventListener('click', ()=>onCardClick(card));
+      cardEl.addEventListener('mouseenter', ()=>{ hoverInfo={kind:hintKindFor(card), id:card.id, card:card}; updateHintOnly(); refreshCardHoverClasses(); });
+      cardEl.addEventListener('mouseleave', ()=>{ hoverInfo=null; updateHintOnly(); refreshCardHoverClasses(); });
+      el.roomCards.appendChild(cardEl);
+    }
+
+    el.deckPile.onmouseenter = ()=>{ hoverInfo={kind:'deck'}; updateHintOnly(); };
+    el.deckPile.onmouseleave = ()=>{ hoverInfo=null; updateHintOnly(); };
+    el.discardPile.onmouseenter = ()=>{ hoverInfo={kind:'discard'}; updateHintOnly(); };
+    el.discardPile.onmouseleave = ()=>{ hoverInfo=null; updateHintOnly(); };
+
+    renderHint();
+
+    el.fleeBtn.disabled = state.gameOver || state.lastActionWasFlee || state.room.length===0 || state.resolvedThisTurn>0;
+
+    // ledger
+    el.ledgerLog.innerHTML = '';
+    state.log.forEach((entry, i)=>{
+      const div = document.createElement('div');
+      if(i === state.log.length-1) div.className = 'fresh';
+      div.textContent = entry.text;
+      el.ledgerLog.appendChild(div);
+    });
+    el.ledgerLog.scrollTop = el.ledgerLog.scrollHeight;
+
+    // game over
+    if(state.gameOver){
+      el.gameOverModal.hidden = false;
+      if(state.result === 'win'){
+        el.gameOverTitle.textContent = 'YOU ESCAPED';
+        el.gameOverSub.textContent = 'The dungeon is cleared.';
+      } else {
+        el.gameOverTitle.textContent = 'YOU FELL';
+        el.gameOverSub.textContent = 'The dungeon claims another scoundrel.';
+      }
+      el.gameOverScore.textContent = 'Score:' + state.score;
+    } else {
+      el.gameOverModal.hidden = true;
+    }
+  }
+
+  function refreshCardHoverClasses(){
+    Array.from(el.roomCards.children).forEach((div, i)=>{
+      const card = state.room[i];
+      if(!card) return;
+      div.classList.toggle('hovered', !!(hoverInfo && hoverInfo.id===card.id));
     });
   }
 
-  G.cards = cs;
-  G.roomSize = cs.length;
-
-  // last room = after dealing this room, deck is empty AND not endless
-  G.inLastRoom = (!G.endless && G.deck.length===0);
-
-  // option: win on entering last room (don’t clear it)
-  if(G.inLastRoom && winMode()==="enterLast"){
-    return showEndScreen({
-      title:"Deck cleared",
-      sub:"Final room reached.",
-      allowEndless:true
-    });
+  function renderHint(){
+    if(state.selectedMonsterId){
+      const card = state.room.find(c=>c.id===state.selectedMonsterId);
+      if(card){
+        const eligible = canUseWeapon(card);
+        const dmgBare = card.value;
+        const dmgWeapon = state.weapon ? Math.max(0, card.value - state.weapon.value) : null;
+        el.hintBox.innerHTML =
+          '<div class="hint-title">' + cardName(card).toUpperCase() + ' BLOCKS YOUR WAY</div>' +
+          '<div class="choice-buttons">' +
+            '<button class="choice-btn" id="fightWeapon" ' + (state.weapon && eligible ? '' : 'disabled') + '>' +
+            (state.weapon ? ('FIGHT WITH WEAPON<br>-' + dmgWeapon + ' HP' + (eligible?'':' (TOO STRONG)')) : 'NO WEAPON') +
+            '</button>' + '<button class="choice-btn bare" id="fightBare">FIGHT BAREHANDED<br>-' + dmgBare + ' HP</button>' +
+            '</button>' +
+            '<button class="choice-btn cancel" id="cancelFight">CHOOSE ANOTHER</button>' +
+          '</div>';
+        document.getElementById('fightBare').onclick = ()=>resolveCard(card.id, false);
+        const wBtn = document.getElementById('fightWeapon');
+        if(state.weapon && eligible) wBtn.onclick = ()=>resolveCard(card.id, true);
+        document.getElementById('cancelFight').onclick = ()=>{ state.selectedMonsterId=null; render(); };
+        return;
+      }
+    }
+    if(!state.gameOver && hoverInfo && hoverInfo.kind==='potion'){
+      let html = '<p>Heals ' + hoverInfo.card.value + ' HP</p>';
+      if(state.potionUsedThisTurn){
+        html += '<p class="hint-warn">Already drank one this room — will be wasted</p>';
+      }
+      el.hintBox.innerHTML = html;
+      return;
+    }
+    el.hintBox.innerHTML = '<p id="hintText">' + computeHintText() + '</p>';
   }
 
-  setMsg(G.inLastRoom ? `Final room: clear ${G.roomSize} card${G.roomSize===1?"":"s"}.` : "Choose a card.");
-  ui(isNew);
-}
-
-function beginAutoNext(){
-  if(G.transitioning) return;
-  if(drawerOpen()) return;
-  setTransition(true);
-  const grid=$("grid");
-  grid.classList.add("gridOut");
-  setMsg("Next room…","ok");
-  setTimeout(()=>{
-    grid.classList.remove("gridOut");
-    nextRoom(true);
-  }, 160);
-}
-function maybeAutoNext(){
-  if(CFG.autoNext && canProceed() && !drawerOpen() && $("game").classList.contains("show")){
-    setTimeout(()=>{
-      if(CFG.autoNext && canProceed() && !drawerOpen() && !G.transitioning) beginAutoNext();
-    }, 120);
-  }
-}
-
-function nextRoom(fromAuto){
-  if(!canProceed()){ setTransition(false); return flashBad("Resolve the room first."); }
-  if(drawerOpen()) closeDrawer();
-
-  const rem=G.cards.filter(c=>!c.used);
-  G.carry=rem[0]?{rank:rem[0].rank,suit:rem[0].suit}:null;
-
-  // ✅ Default: if this was the last room, winning requires clearing ALL its cards
-  if(G.inLastRoom && winMode()==="clearAll"){
-    setTransition(false);
-    return showEndScreen({
-      title:"Deck cleared",
-      sub:"You cleared every card. Continue into endless?",
-      allowEndless:true
-    });
+  function updateHintOnly(){
+    if(!state.selectedMonsterId) renderHint();
   }
 
-  drawRoom(true);
-  setTimeout(()=>{ setTransition(false); ui(false); }, fromAuto ? 180 : 0);
-}
-
-/* Flee: move ALL visible cards to bottom of deck */
-function fleeRoom(){
-  if(G.transitioning) return;
-  if(!(G.faced===0 && !G.fledLast)) return flashBad("You can’t flee right now.");
-  if(drawerOpen()) closeDrawer();
-
-  const roomCards = G.cards.map(c=>({rank:c.rank,suit:c.suit}));
-  G.carry = null;
-  // In non-endless, if you were "inLastRoom", fleeing makes it not last anymore
-  G.inLastRoom=false;
-
-  G.deck.push(...roomCards);
-
-  G.fledLast=true;
-  setMsg("You flee. Room moved to deck bottom.","ok");
-  drawRoom(true);
-}
-
-function markUsed(i){
-  const c=G.cards[i]; if(!c||c.used) return;
-  c.used=true;
-
-  const w=$("grid").children[i];
-  if(w){ w.classList.add("pulse","usedGlow"); setTimeout(()=>{ w.classList.remove("pulse"); w.classList.add("used"); }, 230); }
-
-  clearSelectedCard();
-  G.faced++; G.fledLast=false;
-
-  if(canProceed()) closeDrawer();
-
-  ui(false);
-  maybeAutoNext();
-}
-
-function selectCard(i){
-  if(G.transitioning) return;
-  const c=G.cards[i];
-  if(!c || c.used) return;
-  if(drawerOpen()) return;
-  if(canProceed()) return flashBad("Next Room is ready.");
-
-  if(c.suit==="♦"){
-    equip(c);
-    setMsg(`Equipped ${nm(c)}.`,"ok");
-    $("weaponSlot").classList.add("pop"); setTimeout(()=>$("weaponSlot").classList.remove("pop"),220);
-    return markUsed(i);
+  function onCardClick(card){
+    if(state.gameOver) return;
+    if(card.type === 'monster'){
+      state.selectedMonsterId = (state.selectedMonsterId === card.id) ? null : card.id;
+      render();
+    } else {
+      resolveCard(card.id, false);
+    }
   }
 
-  if(c.suit==="♥"){
-    if(G.healed){ setMsg("Potion has no effect (already healed this room)."); return markUsed(i); }
-    const h=val(c.rank), b=G.hp;
-    G.hp=Math.min(G.hpMax,G.hp+h);
-    G.healed=true;
-    setMsg(`Healed ${G.hp-b}.`,"ok");
-    return markUsed(i);
-  }
+  // ---------- wiring ----------
+  document.getElementById('fleeBtn').addEventListener('click', fleeRoom);
+  document.getElementById('restartBtn').addEventListener('click', ()=>{ if(confirm('Abandon this run and start a new dungeon?')) newGame(); });
+  document.getElementById('playAgainBtn').addEventListener('click', newGame);
+  document.getElementById('rulesBtn').addEventListener('click', ()=>{ document.getElementById('rulesModal').hidden = false; });
+  document.getElementById('closeRules').addEventListener('click', ()=>{ document.getElementById('rulesModal').hidden = true; });
 
-  openDrawer(i,val(c.rank));
-}
-
-function openDrawer(i,mv){
-  if(G.transitioning) return;
-  if(canProceed()) return;
-
-  G.pendingI=i; G.pendingV=mv;
-  setSelectedCard(i);
-
-  $("dTitle").textContent=`Fight: ${nm(G.cards[i])}`;
-  $("dInfo").innerHTML=`Monster: <b>${mv}</b>` + (G.weapon ? ` • Weapon: <b>${wDmg()}</b> • Durability: <b>${G.weapon.dur}</b>` : ` • <b>No weapon</b>`);
-
-  const btns=$("dBtns"); btns.innerHTML="";
-
-  const w=document.createElement("button");
-  w.className="pri"; w.textContent="Use weapon";
-  w.disabled = !canWeaponKill(mv);
-  w.onclick=fightWeapon;
-  btns.appendChild(w);
-
-  const b=document.createElement("button");
-  b.className="dng"; b.textContent="Barehanded";
-  b.onclick=fightBare;
-  btns.appendChild(b);
-
-  $("drawer").classList.add("show");
-}
-
-function fightWeapon(){
-  const idx=G.pendingI, mv=G.pendingV;
-  if(idx==null) return;
-  if(G.transitioning) return closeDrawer();
-  if(canProceed()) return closeDrawer();
-  if(!canWeaponKill(mv)) return flashBad("Weapon can’t kill that right now.");
-
-  const taken=Math.max(0,mv-wDmg());
-  if(!dmg(taken)) return;
-
-  G.weapon.monsters.push({...G.cards[idx]});
-  const dm1 = durMinusOne();
-  G.weapon.dur=Math.max(0, Math.min(14, dm1 ? (mv-1) : mv));
-
-  G.stats.fought++;
-  setMsg(taken?`You took ${taken}.`:"Clean kill.","ok");
-
-  closeDrawer();
-  markUsed(idx);
-}
-
-function fightBare(){
-  const idx=G.pendingI, mv=G.pendingV;
-  if(idx==null) return;
-  if(G.transitioning) return closeDrawer();
-  if(canProceed()) return closeDrawer();
-  if(!dmg(mv)) return;
-
-  G.stats.fought++;
-  setMsg(`You took ${mv}.`);
-  closeDrawer();
-  markUsed(idx);
-}
-
-/* Menu */
-function openMenu(){
-  if(G.transitioning) return;
-  closeDrawer();
-  $("menuStats").innerHTML =
-    `<div class="sr"><span>Cards left</span><b>${G.deck.length}</b></div>`+
-    (G.inLastRoom ? `<div class="sr"><span>Final room size</span><b>${G.roomSize}</b></div>` : ``)+
-    (G.endless ? `<div class="sr"><span>Decks cleared</span><b>${G.decksCleared}</b></div>` : ``);
-  $("menuModal").classList.add("show");
-  $("menuModal").setAttribute("aria-hidden","false");
-}
-function closeMenu(silent){
-  $("menuModal").classList.remove("show");
-  $("menuModal").setAttribute("aria-hidden","true");
-  if(!silent) ui(false);
-}
-function menuToHome(){ closeMenu(true); show("home"); }
-
-function setMsg(t,type=""){
-  const el=$("msg");
-  el.className="msg"+(type?(" "+type):"");
-  el.innerHTML=t;
-}
-function flashBad(t){
-  setMsg(t,"bad");
-  const el=$("msg");
-  el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake");
-}
-
-function ui(dealAnim){
-  $("hpNow").textContent=G.hp; $("hpMax").textContent=G.hpMax;
-  const pct=G.hpMax?Math.max(0,Math.min(1,G.hp/G.hpMax)):0;
-  $("hpFill").style.width=(pct*100).toFixed(1)+"%";
-  $("hpHint").textContent=pct>=.66?"You’re steady.":pct>=.33?"Careful now.":"One bad hit.";
-
-  $("durVal").textContent = G.weapon ? String(G.weapon.dur) : "14";
-  $("durSub").textContent = G.weapon
-    ? (G.inLastRoom ? `Final room: clear ${requiredThisRoom()} card${requiredThisRoom()===1?"":"s"}.` : `Clear ${requiredThisRoom()} cards to move on.`)
-    : (G.inLastRoom ? `Final room: clear ${requiredThisRoom()} card${requiredThisRoom()===1?"":"s"}.` : "First weapon-kill can be up to 14.");
-
-  const row=$("durMini"); row.innerHTML="";
-  if(G.weapon){
-    G.weapon.monsters.slice(-10).forEach(m=>{
-      const mini=document.createElement("div");
-      mini.className="mini "+(isRed(m.suit)?"red":"blk");
-      mini.innerHTML=`<div class="mr">${m.rank}</div><div class="ms">${m.suit}</div>`;
-      row.appendChild(mini);
-    });
-  }
-
-  const slot=$("weaponSlot"); slot.innerHTML="";
-  if(!G.weapon) slot.innerHTML='<div class="plus">+</div>';
-  else{
-    const el=document.createElement("div");
-    el.className="card "+(isRed(G.weapon.card.suit)?"red":"blk");
-    el.innerHTML=`<div class="rk">${G.weapon.card.rank}</div><div class="st">${G.weapon.card.suit}</div>`;
-    slot.appendChild(el);
-  }
-
-  $("deckLeft").textContent=String(G.deck.length);
-  $("cardsLeftPill").innerHTML=`Cards left: <b>${G.deck.length}</b>`;
-  updateTopPill();
-
-  const showDecks = G.endless;
-  $("decksClearedLine").style.display = showDecks ? "block" : "none";
-  $("deckCountPill").style.display = showDecks ? "inline-flex" : "none";
-  if(showDecks){
-    $("decksClearedVal").textContent = String(G.decksCleared);
-    $("deckCountPill").innerHTML = `Decks cleared: <b>${G.decksCleared}</b>`;
-  }
-
-  setTransition(G.transitioning);
-
-  const grid=$("grid"); grid.innerHTML="";
-  G.cards.forEach((c,i)=>{
-    const w=document.createElement("div");
-    w.className="cardw"+(c.used?" used usedGlow":"");
-    const cd=document.createElement("div");
-    cd.className="card "+(isRed(c.suit)?"red":"blk");
-    cd.innerHTML=`<div class="rk">${c.rank}</div><div class="st">${c.suit}</div>`;
-    w.appendChild(cd);
-    if(!c.used) w.onclick=()=>selectCard(i);
-    grid.appendChild(w);
-  });
-
-  grid.classList.toggle("deal", !!dealAnim);
-  if(dealAnim) setTimeout(()=>grid.classList.remove("deal"), 320);
-}
-
-/* init */
-(function init(){
-  fill("home_hp",[["15","15 (Hard)"],["20","20 (Normal)"],["25","25 (Easy)"],["30","30 (Very Easy)"]]);
-  fill("set_hp",[["15","15 (Hard)"],["20","20 (Normal)"],["25","25 (Easy)"],["30","30 (Very Easy)"]]);
-
-  $("home_hp").addEventListener("change", ()=>CFG.hp=parseInt($("home_hp").value,10));
-  $("set_hp").addEventListener("change", ()=>{ CFG.hp=parseInt($("set_hp").value,10); $("home_hp").value=$("set_hp").value; });
-  $("set_firstWeapon").addEventListener("change", ()=>CFG.firstWeapon=$("set_firstWeapon").checked);
-  $("set_autoNext").addEventListener("change", ()=>CFG.autoNext=$("set_autoNext").checked);
-
-  $("home_hp").value="20";
-  $("set_hp").value="20";
-  $("set_firstWeapon").checked=false;
-  $("set_autoNext").checked=false;
-
-  updateTopPill();
+  newGame();
 })();
 </script>
 </body>
